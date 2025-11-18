@@ -1,29 +1,70 @@
 {
   "expo": {
-    "name": "cyclehome",
-    "slug": "cyclehome",
+    "name": "Rutinlerim",
+    "slug": "rutinlerim",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "description": "Ev rutinlerinizi kolayca takip edin. Bitki sulama, havlu değiştirme, filtre temizleme gibi düzenli yapılması gereken işler için hatırlatıcı.",
+    "privacy": "unlisted",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#6B73FF"
     },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.rutinlerim.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "background-fetch"
+        ]
+      }
     },
     "android": {
+      "package": "com.rutinlerim.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#6B73FF"
       },
+      "permissions": [
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.WAKE_LOCK",
+        "android.permission.SCHEDULE_EXACT_ALARM"
+      ],
       "edgeToEdgeEnabled": true
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "notification": {
+      "color": "#6B73FF",
+      "iosDisplayInForeground": true,
+      "androidMode": "default",
+      "androidCollapsedTitle": "Rutinlerim Hatırlatması"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "color": "#6B73FF",
+          "defaultChannel": "default"
+        }
+      ],
+      "expo-asset"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "87b48784-3760-41d7-b0b1-20c858919175"
+      }
     }
   }
 }

@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>EvRutini İkonu</title>
+    <style>
+        body { margin: 0; padding: 20px; background: #f0f0f0; font-family: Arial; }
+        #canvas { border: 2px solid #ccc; margin: 20px 0; }
+        .icon-preview { 
+            width: 200px; 
+            height: 200px; 
+            margin: 10px; 
+            border: 1px solid #ddd; 
+            display: inline-block;
+        }
+        button { 
+            padding: 10px 20px; 
+            background: #6B73FF; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>EvRutini - Telif-Safe İkon Oluşturucu</h1>
+    
+    <canvas id="canvas" width="1024" height="1024"></canvas>
+    
+    <div>
+        <button onclick="createIcon1()">İkon 1: Ev + Döngü</button>
+        <button onclick="createIcon2()">İkon 2: Modern Minimalist</button>
+        <button onclick="createIcon3()">İkon 3: Renkli Halka</button>
+        <button onclick="downloadIcon()">İndir (PNG)</button>
+    </div>
+    
+    <div id="previews"></div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // İkon 1: Ev + Döngü Simgesi
+        function createIcon1() {
+            const size = 1024;
+            ctx.clearRect(0, 0, size, size);
+            
+            // Arka plan gradient
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#6B73FF');
+            gradient.addColorStop(1, '#4F46E5');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Border radius effect (rounded corners)
+            ctx.globalCompositeOperation = 'destination-in';
+            ctx.beginPath();
+            const radius = size * 0.22; // iOS app icon radius
+            ctx.roundRect(0, 0, size, size, radius);
+            ctx.fill();
+            ctx.globalCompositeOperation = 'source-over';
+            
+            // Ev simgesi (basit geometric)
+            ctx.fillStyle = 'white';
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 8;
+            
+            const centerX = size / 2;
+            const centerY = size / 2;
+            const houseSize = size * 0.35;
+            
+            // Ev çatısı (üçgen)
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY - houseSize);
+            ctx.lineTo(centerX - houseSize * 0.8, centerY - houseSize * 0.3);
+            ctx.lineTo(centerX + houseSize * 0.8, centerY - houseSize * 0.3);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Ev gövdesi (dikdörtgen)
+            ctx.fillRect(centerX - houseSize * 0.6, centerY - houseSize * 0.3, 
+                        houseSize * 1.2, houseSize * 1.1);
+            
+            // Kapı
+            ctx.fillStyle = '#6B73FF';
+            ctx.fillRect(centerX - houseSize * 0.15, centerY + houseSize * 0.1, 
+                        houseSize * 0.3, houseSize * 0.7);
+            
+            // Döngü ok işareti (sağ üst köşe)
+            ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+            ctx.lineWidth = 12;
+            ctx.lineCap = 'round';
+            
+            const arrowX = centerX + houseSize * 0.7;
+            const arrowY = centerY - houseSize * 0.7;
+            const arrowRadius = houseSize * 0.3;
+            
+            ctx.beginPath();
+            ctx.arc(arrowX, arrowY, arrowRadius, 0, Math.PI * 1.5);
+            ctx.stroke();
+            
+            // Ok ucu
+            ctx.beginPath();
+            ctx.moveTo(arrowX + arrowRadius * 0.7, arrowY - arrowRadius - 10);
+            ctx.lineTo(arrowX + arrowRadius + 10, arrowY - arrowRadius * 0.3);
+            ctx.lineTo(arrowX + arrowRadius * 0.3, arrowY - arrowRadius + 10);
+            ctx.stroke();
+        }
+        
+        // İkon 2: Modern Minimalist
+        function createIcon2() {
+            const size = 1024;
+            ctx.clearRect(0, 0, size, size);
+            
+            // Modern gradient background
+            const gradient = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+            gradient.addColorStop(0, '#8B5CF6');
+            gradient.addColorStop(1, '#6B73FF');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Rounded corners
+            ctx.globalCompositeOperation = 'destination-in';
+            ctx.beginPath();
+            ctx.roundRect(0, 0, size, size, size * 0.22);
+            ctx.fill();
+            ctx.globalCompositeOperation = 'source-over';
+            
+            // Minimalist ev simgesi - sadece outline
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 16;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.fillStyle = 'transparent';
+            
+            const centerX = size / 2;
+            const centerY = size / 2;
+            const houseSize = size * 0.25;
+            
+            // Ev outline
+            ctx.beginPath();
+            // Çatı
+            ctx.moveTo(centerX - houseSize, centerY);
+            ctx.lineTo(centerX, centerY - houseSize);
+            ctx.lineTo(centerX + houseSize, centerY);
+            // Duvarlar
+            ctx.lineTo(centerX + houseSize, centerY + houseSize);
+            ctx.lineTo(centerX - houseSize, centerY + houseSize);
+            ctx.closePath();
+            ctx.stroke();
+            
+            // İç detaylar
+            ctx.lineWidth = 8;
+            // Kapı
+            ctx.beginPath();
+            ctx.moveTo(centerX - houseSize * 0.3, centerY + houseSize);
+            ctx.lineTo(centerX - houseSize * 0.3, centerY + houseSize * 0.3);
+            ctx.lineTo(centerX + houseSize * 0.3, centerY + houseSize * 0.3);
+            ctx.lineTo(centerX + houseSize * 0.3, centerY + houseSize);
+            ctx.stroke();
+            
+            // Döngü simgesi - modern
+            ctx.lineWidth = 12;
+            ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+            
+            const circleRadius = houseSize * 0.6;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY - houseSize * 1.8, circleRadius, 0, Math.PI * 1.75);
+            ctx.stroke();
+            
+            // Modern ok ucu
+            ctx.beginPath();
+            const arrowTipX = centerX + circleRadius * 0.5;
+            const arrowTipY = centerY - houseSize * 1.8 - circleRadius * 0.8;
+            ctx.moveTo(arrowTipX, arrowTipY);
+            ctx.lineTo(arrowTipX + 20, arrowTipY - 30);
+            ctx.lineTo(arrowTipX - 30, arrowTipY - 20);
+            ctx.stroke();
+        }
+        
+        // İkon 3: Renkli Halka
+        function createIcon3() {
+            const size = 1024;
+            ctx.clearRect(0, 0, size, size);
+            
+            // Çok renkli gradient
+            const gradient = ctx.createConicGradient(0, size/2, size/2);
+            gradient.addColorStop(0, '#6B73FF');
+            gradient.addColorStop(0.3, '#8B5CF6');
+            gradient.addColorStop(0.6, '#EC4899');
+            gradient.addColorStop(1, '#6B73FF');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Rounded corners
+            ctx.globalCompositeOperation = 'destination-in';
+            ctx.beginPath();
+            ctx.roundRect(0, 0, size, size, size * 0.22);
+            ctx.fill();
+            ctx.globalCompositeOperation = 'source-over';
+            
+            // Merkez beyaz daire
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(size/2, size/2, size * 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Ev simgesi merkez
+            ctx.fillStyle = '#6B73FF';
+            const centerX = size / 2;
+            const centerY = size / 2;
+            const houseSize = size * 0.15;
+            
+            // Basit ev
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY - houseSize);
+            ctx.lineTo(centerX - houseSize, centerY);
+            ctx.lineTo(centerX - houseSize * 0.6, centerY);
+            ctx.lineTo(centerX - houseSize * 0.6, centerY + houseSize * 0.8);
+            ctx.lineTo(centerX + houseSize * 0.6, centerY + houseSize * 0.8);
+            ctx.lineTo(centerX + houseSize * 0.6, centerY);
+            ctx.lineTo(centerX + houseSize, centerY);
+            ctx.closePath();
+            ctx.fill();
+        }
+        
+        // PNG olarak indirme
+        function downloadIcon() {
+            const link = document.createElement('a');
+            link.download = 'evrutini-icon-1024x1024.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        // Canvas için roundRect polyfill
+        if (!CanvasRenderingContext2D.prototype.roundRect) {
+            CanvasRenderingContext2D.prototype.roundRect = function(x, y, width, height, radius) {
+                this.beginPath();
+                this.moveTo(x + radius, y);
+                this.lineTo(x + width - radius, y);
+                this.quadraticCurveTo(x + width, y, x + width, y + radius);
+                this.lineTo(x + width, y + height - radius);
+                this.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                this.lineTo(x + radius, y + height);
+                this.quadraticCurveTo(x, y + height, x, y + height - radius);
+                this.lineTo(x, y - radius);
+                this.quadraticCurveTo(x, y, x + radius, y);
+                this.closePath();
+            };
+        }
+        
+        // İlk ikonu başlat
+        createIcon1();
+    </script>
+</body>
+</html>
