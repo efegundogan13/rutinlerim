@@ -8,7 +8,8 @@ import {
   ScrollView,
   Alert,
   Animated,
-  Switch
+  Switch,
+  Platform
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { COLORS, getCategoryById } from '../constants/categories';
@@ -35,21 +36,38 @@ const formatDateTime = (date) => {
 import CategoryPicker from '../components/CategoryPicker';
 
 const ItemDetailScreen = ({ route, navigation }) => {
-  const { cycle } = route.params;
-  
-  const [name, setName] = useState(cycle.name);
-  const [categoryId, setCategoryId] = useState(cycle.categoryId);
-  const [period, setPeriod] = useState(cycle.period.toString());
-  const [lastCompleted, setLastCompleted] = useState(new Date(cycle.lastCompleted));
-  const [nextDue, setNextDue] = useState(new Date(cycle.nextDue));
-  const [notificationsEnabled, setNotificationsEnabled] = useState(cycle.notificationsEnabled !== false);
-  const [showLastDateTimePicker, setShowLastDateTimePicker] = useState(false);
-  const [showNextDateTimePicker, setShowNextDateTimePicker] = useState(false);
+  // Guard: route veya cycle eksikse crash önlemek için güvenli varsayılanlar kullan
+  const cycle = route?.params?.cycle || null;
+
+
+  const [name, setName] = useState(cycle?.name || '');
+  const [categoryId, setCategoryId] = useState(cycle?.categoryId || 'bitki');
+  const [period, setPeriod] = useState((cycle?.period != null) ? cycle.period.toString() : '7');
+  const [periodUnit, setPeriodUnit] = useState(cycle?.periodUnit || 'days'); // YENİ
+  const [lastCompleted, setLastCompleted] = useState(cycle?.lastCompleted ? new Date(cycle.lastCompleted) : new Date());
+  const [nextDue, setNextDue] = useState(cycle?.nextDue ? new Date(cycle.nextDue) : new Date());
+  const [notificationsEnabled, setNotificationsEnabled] = useState(cycle?.notificationsEnabled !== false);
+  // Android için iki aşamalı picker
+  const [showLastDatePicker, setShowLastDatePicker] = useState(false);
+  const [showLastTimePicker, setShowLastTimePicker] = useState(false);
+  const [showNextDatePicker, setShowNextDatePicker] = useState(false);
+  const [showNextTimePicker, setShowNextTimePicker] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+
+  // Düzenleme formu açılırken picker state'lerini sıfırla
+  useEffect(() => {
+    if (isEditing) {
+      setShowLastDatePicker(false);
+      setShowLastTimePicker(false);
+      setShowNextDatePicker(false);
+      setShowNextTimePicker(false);
+    }
+  }, [isEditing]);
   
-  const slideAnim = new Animated.Value(0);
-  const scaleAnim = new Animated.Value(1);
+  // Animated.Value'ları useRef ile oluşturmak, yeniden renderlarda yeni instance oluşmasını engeller
+  const slideAnim = React.useRef(new Animated.Value(0)).current;
+  const scaleAnim = React.useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     // Ekran girişi animasyonu
@@ -58,32 +76,102 @@ const ItemDetailScreen = ({ route, navigation }) => {
       duration: 300,
       useNativeDriver: true,
     }).start();
+    // Debug: route paramlarını logla (Android'te bazen eksik gelebiliyor)
+    try {
+      console.log('ItemDetail mounted, route.params=', route?.params);
+    } catch (e) {
+      console.log('ItemDetail mount: route params log error', e);
+    }
   }, []);
 
   const category = getCategoryById(categoryId);
-  const daysUntilDue = getDaysUntilDue(nextDue);
-  const status = getCycleStatus({ nextDue: nextDue.toISOString() });
+  const daysUntilDue = nextDue ? getDaysUntilDue(nextDue) : 0;
+  const status = nextDue ? getCycleStatus({ nextDue: nextDue.toISOString(), periodUnit }) : 'normal';
 
   // Kategori seçildiğinde
   const handleCategorySelect = (selectedCategory) => {
     setCategoryId(selectedCategory.id);
+    setPeriodUnit(selectedCategory.periodUnit || 'days'); // Kategori birimine göre güncelle
   };
 
-  // Tarih değişikliklerini handle et
-  const handleLastDateTimeChange = (event, selectedDateTime) => {
-    setShowLastDateTimePicker(false);
+  // Son tamamlanma tarihi için iki aşamalı picker (Android)
+  const handleLastDateChange = (event, selectedDate) => {
+    if (event.type === 'dismissed') {
+      setShowLastDatePicker(false);
+      return;
+    }
+    setShowLastDatePicker(false);
+    if (selectedDate) {
+      setShowLastTimePicker(true);
+      setLastCompleted(prev => {
+        const newDate = new Date(selectedDate);
+        newDate.setHours(prev.getHours());
+        newDate.setMinutes(prev.getMinutes());
+        return newDate;
+      });
+    }
+  };
+  const handleLastTimeChange = (event, selectedTime) => {
+    if (event.type === 'dismissed') {
+      setShowLastTimePicker(false);
+      return;
+    }
+    setShowLastTimePicker(false);
+    if (selectedTime) {
+      setLastCompleted(prev => {
+        const newDate = new Date(prev);
+        newDate.setHours(selectedTime.getHours());
+        newDate.setMinutes(selectedTime.getMinutes());
+        // Sonraki tarihi de güncelle
+        const newNextDate = new Date(newDate);
+        newNextDate.setDate(newDate.getDate() + parseInt(period));
+        setNextDue(newNextDate);
+        return newDate;
+      });
+    }
+  };
+  // Sonraki hatırlatma tarihi için iki aşamalı picker (Android)
+  const handleNextDateChange = (event, selectedDate) => {
+    if (event.type === 'dismissed') {
+      setShowNextDatePicker(false);
+      return;
+    }
+    setShowNextDatePicker(false);
+    if (selectedDate) {
+      setShowNextTimePicker(true);
+      setNextDue(prev => {
+        const newDate = new Date(selectedDate);
+        newDate.setHours(prev.getHours());
+        newDate.setMinutes(prev.getMinutes());
+        return newDate;
+      });
+    }
+  };
+  const handleNextTimeChange = (event, selectedTime) => {
+    if (event.type === 'dismissed') {
+      setShowNextTimePicker(false);
+      return;
+    }
+    setShowNextTimePicker(false);
+    if (selectedTime) {
+      setNextDue(prev => {
+        const newDate = new Date(prev);
+        newDate.setHours(selectedTime.getHours());
+        newDate.setMinutes(selectedTime.getMinutes());
+        return newDate;
+      });
+    }
+  };
+  // iOS için tek picker
+  const handleLastDateTimeChangeIOS = (event, selectedDateTime) => {
     if (selectedDateTime) {
       setLastCompleted(selectedDateTime);
-      
-      // Son tarih değiştiğinde, sonraki tarihi otomatik güncelle
       const newNextDate = new Date(selectedDateTime);
       newNextDate.setDate(selectedDateTime.getDate() + parseInt(period));
       setNextDue(newNextDate);
     }
   };
-
-  const handleNextDateTimeChange = (event, selectedDateTime) => {
-    setShowNextDateTimePicker(false);
+  const handleNextDateTimeChangeIOS = (event, selectedDateTime) => {
     if (selectedDateTime) {
       setNextDue(selectedDateTime);
     }
@@ -93,8 +181,25 @@ const ItemDetailScreen = ({ route, navigation }) => {
   const handlePeriodChange = (newPeriod) => {
     setPeriod(newPeriod);
     if (newPeriod && !isNaN(newPeriod)) {
-      const newNextDate = new Date(lastCompleted);
-      newNextDate.setDate(lastCompleted.getDate() + parseInt(newPeriod));
+      const now = new Date();
+      const newNextDate = new Date(now);
+      const periodNum = parseInt(newPeriod);
+      
+      if (periodUnit === 'hours') {
+        // Saatlik: şimdiden X saat sonra, kullanıcının seçtiği dakikada
+        newNextDate.setHours(now.getHours() + periodNum);
+        newNextDate.setMinutes(lastCompleted.getMinutes());
+        newNextDate.setSeconds(0);
+        newNextDate.setMilliseconds(0);
+      } else {
+        // Günlük: X gün sonra, kullanıcının seçtiği saatte
+        newNextDate.setDate(now.getDate() + periodNum);
+        newNextDate.setHours(lastCompleted.getHours());
+        newNextDate.setMinutes(lastCompleted.getMinutes());
+        newNextDate.setSeconds(0);
+        newNextDate.setMilliseconds(0);
+      }
+      
       setNextDue(newNextDate);
     }
   };
@@ -118,18 +223,21 @@ const ItemDetailScreen = ({ route, navigation }) => {
         name: name.trim(),
         categoryId,
         period: parseInt(period),
+        periodUnit: periodUnit,
         lastCompleted: lastCompleted.toISOString(),
         nextDue: nextDue.toISOString(),
-        notificationsEnabled
+        notificationsEnabled,
+        // Günlük döngüler için reminderTime'ı koru
+        reminderTime: cycle.reminderTime || lastCompleted.toISOString()
       };
 
       const success = await updateCycle(cycle.id, updatedData);
       
       if (success) {
         // Bildirimi güncelle
-        await cancelNotificationForCycle(cycle.id);
         if (notificationsEnabled) {
-          await scheduleNotificationForCycle({ ...cycle, ...updatedData });
+          const updatedCycle = { ...cycle, ...updatedData, id: cycle.id };
+          await scheduleNotificationForCycle(updatedCycle);
         }
         
         Alert.alert(
@@ -166,7 +274,6 @@ const ItemDetailScreen = ({ route, navigation }) => {
 
   const confirmDelete = async () => {
     try {
-      // Bildirimi iptal et
       await cancelNotificationForCycle(cycle.id);
       
       const success = await deleteCycle(cycle.id);
@@ -206,7 +313,7 @@ const ItemDetailScreen = ({ route, navigation }) => {
       if (success) {
         Alert.alert(
           'Tebrikler! 🎉',
-          'Döngü başarıyla tamamlandı ve sonraki tarih güncellendi.',
+          'Döngü başarıyla tamamlandı.',
           [{ text: 'Tamam', onPress: () => navigation.goBack() }]
         );
       } else {
@@ -232,14 +339,33 @@ const ItemDetailScreen = ({ route, navigation }) => {
 
   // Durum metnini belirle
   const getStatusText = () => {
-    if (daysUntilDue < 0) {
-      return `${Math.abs(daysUntilDue)} gün gecikmiş`;
-    } else if (daysUntilDue === 0) {
-      return 'Bugün yapılacak';
-    } else if (daysUntilDue === 1) {
-      return 'Yarın yapılacak';
+    if (periodUnit === 'hours') {
+      // Saatlik döngüler için saat bazlı göster
+      const now = new Date();
+      const due = nextDue ? new Date(nextDue) : new Date();
+      const diffMs = due - now;
+      const diffHours = Math.ceil(diffMs / (1000 * 60 * 60));
+      
+      if (diffHours < 0) {
+        return `${Math.abs(diffHours)} saat gecikmiş`;
+      } else if (diffHours === 0) {
+        return 'Şimdi yapılacak';
+      } else if (diffHours === 1) {
+        return '1 saat sonra';
+      } else {
+        return `${diffHours} saat sonra`;
+      }
     } else {
-      return `${daysUntilDue} gün kaldı`;
+      // Günlük döngüler için gün bazlı göster
+      if (daysUntilDue < 0) {
+        return `${Math.abs(daysUntilDue)} gün gecikmiş`;
+      } else if (daysUntilDue === 0) {
+        return 'Bugün yapılacak';
+      } else if (daysUntilDue === 1) {
+        return 'Yarın yapılacak';
+      } else {
+        return `${daysUntilDue} gün kaldı`;
+      }
     }
   };
 
@@ -254,13 +380,13 @@ const ItemDetailScreen = ({ route, navigation }) => {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Durum kartı */}
         <View style={[styles.statusCard, { borderColor: getStatusColor() }]}>
-          <Text style={styles.statusEmoji}>{category.icon}</Text>
-          <Text style={styles.statusTitle}>{cycle.name}</Text>
-          <Text style={[styles.statusText, { color: getStatusColor() }]}>
+          <Text style={styles.statusEmoji}>{category?.icon || '❓'}</Text>
+          <Text style={styles.statusTitle}>{name || '—'}</Text>
+          <Text style={[styles.statusText, { color: getStatusColor() }]}> 
             {getStatusText()}
           </Text>
           <Text style={styles.statusSubtext}>
-            Sonraki: {formatDateTime(nextDue)}
+            Sonraki: {nextDue ? formatDateTime(nextDue) : '—'}
           </Text>
         </View>
 
@@ -276,7 +402,19 @@ const ItemDetailScreen = ({ route, navigation }) => {
           
           <TouchableOpacity
             style={[styles.actionButton, styles.editButton]}
-            onPress={() => setIsEditing(!isEditing)}
+            onPress={() => {
+              // Düzenle butonuna basınca formu doldur
+              if (!isEditing && cycle) {
+                // Düzenleme moduna geçerken state'leri güncelle
+                setName(cycle.name || '');
+                setCategoryId(cycle.categoryId || 'bitki');
+                setPeriod((cycle.period != null) ? cycle.period.toString() : '7');
+                setLastCompleted(cycle.lastCompleted ? new Date(cycle.lastCompleted) : new Date());
+                setNextDue(cycle.nextDue ? new Date(cycle.nextDue) : new Date());
+                setNotificationsEnabled(cycle.notificationsEnabled !== false);
+              }
+              setIsEditing(prev => !prev);
+            }}
           >
             <Text style={styles.actionButtonIcon}>✏️</Text>
             <Text style={styles.actionButtonText}>
@@ -288,16 +426,16 @@ const ItemDetailScreen = ({ route, navigation }) => {
         {/* İstatistikler */}
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{cycle.completedCount || 0}</Text>
+            <Text style={styles.statNumber}>{(cycle && cycle.completedCount) ? cycle.completedCount : 0}</Text>
             <Text style={styles.statLabel}>Tamamlandı</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={styles.statNumber}>{cycle.period}</Text>
-            <Text style={styles.statLabel}>Gün Periyod</Text>
+            <Text style={styles.statNumber}>{period}</Text>
+            <Text style={styles.statLabel}>{periodUnit === 'hours' ? 'Saat' : 'Gün'} Periyod</Text>
           </View>
           <View style={styles.statItem}>
             <Text style={styles.statNumber}>
-              {Math.floor((new Date() - new Date(cycle.createdAt || cycle.lastCompleted)) / (1000 * 60 * 60 * 24))}
+              {Math.floor((new Date() - new Date(cycle?.createdAt || cycle?.lastCompleted || lastCompleted)) / (1000 * 60 * 60 * 24))}
             </Text>
             <Text style={styles.statLabel}>Gün Önce</Text>
           </View>
@@ -305,92 +443,127 @@ const ItemDetailScreen = ({ route, navigation }) => {
 
         {/* Düzenleme formu */}
         {isEditing && (
-          <View style={styles.editForm}>
+          <View style={[styles.editForm, {backgroundColor: '#fff', borderWidth: 2, borderColor: '#6B73FF', zIndex: 100}]}> 
             <Text style={styles.sectionTitle}>Döngü Bilgilerini Düzenle</Text>
-            
             {/* Döngü Adı */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Döngü Adı</Text>
               <TextInput
                 style={styles.textInput}
-                value={name}
+                value={name || ''}
                 onChangeText={setName}
                 placeholder="Döngü adı"
                 placeholderTextColor={COLORS.textSecondary}
               />
             </View>
-
             {/* Kategori */}
+            {/* Kategori (geçici olarak kaldırıldı, sadece text gösteriliyor) */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Kategori</Text>
-              <CategoryPicker
-                selectedCategory={categoryId}
-                onSelectCategory={handleCategorySelect}
-              />
+              <Text style={{color: '#333', fontSize: 16}}>{categoryId}</Text>
             </View>
-
             {/* Periyod */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Hatırlatma Periyodu (Gün)</Text>
+              <Text style={styles.label}>Hatırlatma Periyodu</Text>
+              
+              {/* Saat/Gün Seçici */}
+              <View style={styles.unitSelector}>
+                <TouchableOpacity
+                  style={[
+                    styles.unitButton,
+                    periodUnit === 'hours' && styles.unitButtonActive
+                  ]}
+                  onPress={() => setPeriodUnit('hours')}
+                >
+                  <Text style={[
+                    styles.unitButtonText,
+                    periodUnit === 'hours' && styles.unitButtonTextActive
+                  ]}>
+                    ⏰ Saat
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[
+                    styles.unitButton,
+                    periodUnit === 'days' && styles.unitButtonActive
+                  ]}
+                  onPress={() => setPeriodUnit('days')}
+                >
+                  <Text style={[
+                    styles.unitButtonText,
+                    periodUnit === 'days' && styles.unitButtonTextActive
+                  ]}>
+                    📅 Gün
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              
               <TextInput
                 style={styles.textInput}
-                value={period}
+                value={period || ''}
                 onChangeText={handlePeriodChange}
-                placeholder="Gün sayısı"
+                placeholder={periodUnit === 'hours' ? 'Kaç saatte bir' : 'Kaç günde bir'}
                 placeholderTextColor={COLORS.textSecondary}
                 keyboardType="numeric"
               />
             </View>
-
             {/* Son Tamamlanma Tarihi ve Saati */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Son Tamamlanma Tarihi ve Saati</Text>
-              
               <TouchableOpacity
                 style={styles.dateTimeButton}
-                onPress={() => setShowLastDateTimePicker(true)}
+                onPress={() => {
+                  if (Platform.OS === 'android') {
+                    setShowLastDatePicker(true);
+                  } else {
+                    setShowLastDatePicker(true);
+                  }
+                }}
               >
                 <View style={styles.dateTimeContent}>
                   <Text style={styles.dateTimeIcon}>📅🕐</Text>
                   <View style={styles.dateTimeText}>
-                    <Text style={styles.dateText}>{formatDate(lastCompleted)}</Text>
-                    <Text style={styles.timeText}>{formatTime(lastCompleted)}</Text>
+                    <Text style={styles.dateText}>{lastCompleted ? formatDate(lastCompleted) : ''}</Text>
+                    <Text style={styles.timeText}>{lastCompleted ? formatTime(lastCompleted) : ''}</Text>
                   </View>
                 </View>
               </TouchableOpacity>
             </View>
-
             {/* Sonraki Tarih ve Saat */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Sonraki Hatırlatma Tarihi ve Saati</Text>
-              
               <TouchableOpacity
                 style={styles.dateTimeButton}
-                onPress={() => setShowNextDateTimePicker(true)}
+                onPress={() => {
+                  if (Platform.OS === 'android') {
+                    setShowNextDatePicker(true);
+                  } else {
+                    setShowNextDatePicker(true);
+                  }
+                }}
               >
                 <View style={styles.dateTimeContent}>
                   <Text style={styles.dateTimeIcon}>🔔🕐</Text>
                   <View style={styles.dateTimeText}>
-                    <Text style={styles.dateText}>{formatDate(nextDue)}</Text>
-                    <Text style={styles.timeText}>{formatTime(nextDue)}</Text>
+                    <Text style={styles.dateText}>{nextDue ? formatDate(nextDue) : ''}</Text>
+                    <Text style={styles.timeText}>{nextDue ? formatTime(nextDue) : ''}</Text>
                   </View>
                 </View>
               </TouchableOpacity>
             </View>
-
             {/* Bildirimler */}
             <View style={styles.inputGroup}>
               <View style={styles.switchRow}>
                 <Text style={styles.label}>Bildirimler</Text>
                 <Switch
-                  value={notificationsEnabled}
+                  value={!!notificationsEnabled}
                   onValueChange={setNotificationsEnabled}
                   trackColor={{ false: COLORS.border, true: COLORS.primary + '50' }}
                   thumbColor={notificationsEnabled ? COLORS.primary : COLORS.textSecondary}
                 />
               </View>
             </View>
-
             {/* Kaydet ve Sil Butonları */}
             <View style={styles.buttonContainer}>
               <TouchableOpacity
@@ -402,7 +575,6 @@ const ItemDetailScreen = ({ route, navigation }) => {
                   {saving ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}
                 </Text>
               </TouchableOpacity>
-
               <TouchableOpacity
                 style={styles.deleteButton}
                 onPress={handleDelete}
@@ -414,24 +586,62 @@ const ItemDetailScreen = ({ route, navigation }) => {
         )}
       </ScrollView>
 
-      {/* Tarih ve Saat Seçici Modaller */}
-      {showLastDateTimePicker && (
+      {/* Android için iki aşamalı picker */}
+      {Platform.OS === 'android' && showLastDatePicker && (
         <DateTimePicker
           value={lastCompleted}
-          mode="datetime"
+          mode="date"
           display="default"
-          onChange={handleLastDateTimeChange}
+          onChange={handleLastDateChange}
           maximumDate={new Date()}
           is24Hour={true}
         />
       )}
-
-      {showNextDateTimePicker && (
+      {Platform.OS === 'android' && showLastTimePicker && (
+        <DateTimePicker
+          value={lastCompleted}
+          mode="time"
+          display="default"
+          onChange={handleLastTimeChange}
+          is24Hour={true}
+        />
+      )}
+      {Platform.OS === 'android' && showNextDatePicker && (
+        <DateTimePicker
+          value={nextDue}
+          mode="date"
+          display="default"
+          onChange={handleNextDateChange}
+          minimumDate={new Date()}
+          is24Hour={true}
+        />
+      )}
+      {Platform.OS === 'android' && showNextTimePicker && (
+        <DateTimePicker
+          value={nextDue}
+          mode="time"
+          display="default"
+          onChange={handleNextTimeChange}
+          is24Hour={true}
+        />
+      )}
+      {/* iOS için tek picker */}
+      {Platform.OS === 'ios' && showLastDatePicker && (
+        <DateTimePicker
+          value={lastCompleted}
+          mode="datetime"
+          display="compact"
+          onChange={handleLastDateTimeChangeIOS}
+          maximumDate={new Date()}
+          is24Hour={true}
+        />
+      )}
+      {Platform.OS === 'ios' && showNextDatePicker && (
         <DateTimePicker
           value={nextDue}
           mode="datetime"
-          display="default"
-          onChange={handleNextDateTimeChange}
+          display="compact"
+          onChange={handleNextDateTimeChangeIOS}
           minimumDate={new Date()}
           is24Hour={true}
         />
@@ -552,6 +762,33 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text,
     marginBottom: 8,
+  },
+  unitSelector: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  unitButton: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  unitButtonActive: {
+    backgroundColor: COLORS.primary + '15',
+    borderColor: COLORS.primary,
+  },
+  unitButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+  },
+  unitButtonTextActive: {
+    color: COLORS.primary,
   },
   textInput: {
     backgroundColor: COLORS.background,

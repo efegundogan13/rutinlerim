@@ -1,19 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
   TouchableOpacity, 
   StyleSheet, 
   ScrollView,
-  Modal 
+  Modal,
+  Alert
 } from 'react-native';
 import { CATEGORIES, COLORS } from '../constants/categories';
+import { isPremiumUser } from '../utils/premium';
 
 // Kategori seçici bileşeni
-const CategoryPicker = ({ selectedCategory, onSelectCategory, style }) => {
+const CategoryPicker = ({ selectedCategory, onSelectCategory, onPremiumPress, style }) => {
   const [modalVisible, setModalVisible] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
+
+  useEffect(() => {
+    checkPremium();
+  }, [modalVisible]);
+
+  const checkPremium = async () => {
+    const premium = await isPremiumUser();
+    setIsPremium(premium);
+  };
 
   const handleSelectCategory = (category) => {
+    if (category.premium && !isPremium) {
+      Alert.alert(
+        '🔒 Premium Kategori',
+        `"${category.name}" kategorisi Premium kullanıcılara özeldir.`,
+        [
+          { text: 'Tamam', style: 'cancel' },
+          { 
+            text: 'Premium Al', 
+            onPress: () => {
+              setModalVisible(false);
+              if (onPremiumPress) onPremiumPress();
+            }
+          }
+        ]
+      );
+      return;
+    }
     onSelectCategory(category);
     setModalVisible(false);
   };
@@ -50,15 +79,22 @@ const CategoryPicker = ({ selectedCategory, onSelectCategory, style }) => {
                     { borderColor: category.color },
                     selectedCategory === category.id && { 
                       backgroundColor: category.color + '20' 
-                    }
+                    },
+                    category.premium && !isPremium && styles.lockedCategory
                   ]}
                   onPress={() => handleSelectCategory(category)}
                 >
                   <Text style={styles.categoryEmoji}>{category.icon}</Text>
                   <View style={styles.categoryInfo}>
-                    <Text style={styles.categoryOptionName}>{category.name}</Text>
+                    <Text style={styles.categoryOptionName}>
+                      {category.name}
+                      {category.premium && !isPremium ? ' 🔒' : ''}
+                    </Text>
                     <Text style={styles.categoryPeriod}>
-                      Varsayılan: {category.defaultPeriod} gün
+                      {category.premium && !isPremium 
+                        ? 'Premium özellik' 
+                        : `Varsayılan: ${category.defaultPeriod} ${category.periodUnit === 'hours' ? 'saat' : 'gün'}`
+                      }
                     </Text>
                   </View>
                   {selectedCategory === category.id && (
@@ -141,6 +177,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 8,
+  },
+  lockedCategory: {
+    opacity: 0.5,
   },
   categoryEmoji: {
     fontSize: 24,

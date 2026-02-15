@@ -28,7 +28,10 @@ Uygulama aşağıdaki kategorilerle gelir:
 - 🌪️ **Filtre** (90 gün)
 - 🛌 **Çarşaf** (7 gün)
 - 🧽 **Temizlik** (1 gün)
+- 🏠 **Ev Bakımı** (30 gün)
 - 🥛 **Gıda Kontrolü** (3 gün)
+- 💧 **Su İçme** (1 gün)
+- 💊 **İlaç** (1 gün)
 - 📋 **Diğer** (7 gün)
 
 ## 🚀 Kurulum
@@ -113,6 +116,11 @@ Uygulama Expo Notifications kullanarak:
 - Son kullanma tarihi takibi
 - Buzdolabı temizliği
 - Market alışverişi
+
+### Sağlık & Wellness
+- Günlük su içme hatırlatması
+- İlaç kullanım takibi
+- Vitamin rutini
 
 ## 🛠️ Teknoloji Stack
 

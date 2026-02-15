@@ -1,11 +1,42 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useRef, useEffect } from 'react';
+import { View, StyleSheet, Animated, Easing } from 'react-native';
 
-// Basit bir loading componenti (opsiyonel)
+// Loading spinner bileşeni
 const LoadingSpinner = ({ size = 40, color = '#6B73FF' }) => {
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.timing(rotateAnim, {
+        toValue: 1,
+        duration: 800,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    );
+    animation.start();
+    return () => animation.stop();
+  }, []);
+
+  const spin = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
   return (
     <View style={[styles.container, { width: size, height: size }]}>
-      <View style={[styles.spinner, { borderColor: color + '30', borderTopColor: color }]} />
+      <Animated.View
+        style={[
+          styles.spinner,
+          {
+            width: size,
+            height: size,
+            borderColor: color + '30',
+            borderTopColor: color,
+            transform: [{ rotate: spin }],
+          },
+        ]}
+      />
     </View>
   );
 };

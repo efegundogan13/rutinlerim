@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { scheduleNotificationForCycle } from './notifications';
 
 // Veri anahtarları
 const STORAGE_KEYS = {
@@ -112,7 +113,20 @@ export const completeCycle = async (cycleId) => {
     
     const now = new Date();
     const nextDueDate = new Date(now);
-    nextDueDate.setDate(now.getDate() + cycle.period);
+    const periodNum = cycle.period;
+    
+    if (cycle.periodUnit === 'hours') {
+      // SAATLİK: Şimdiden X saat sonra
+      nextDueDate.setHours(now.getHours() + periodNum);
+    } else {
+      // GÜNLÜK: X gün sonra, kaydedilmiş saatte
+      const reminderTime = cycle.reminderTime ? new Date(cycle.reminderTime) : now;
+      nextDueDate.setDate(now.getDate() + periodNum);
+      nextDueDate.setHours(reminderTime.getHours());
+      nextDueDate.setMinutes(reminderTime.getMinutes());
+      nextDueDate.setSeconds(0);
+      nextDueDate.setMilliseconds(0);
+    }
     
     const updatedData = {
       lastCompleted: now.toISOString(),
@@ -120,7 +134,15 @@ export const completeCycle = async (cycleId) => {
       completedCount: (cycle.completedCount || 0) + 1
     };
     
-    return await updateCycle(cycleId, updatedData);
+    const success = await updateCycle(cycleId, updatedData);
+    
+    // Döngü başarıyla güncellendiyse bildirim planla
+    if (success && cycle.notificationsEnabled !== false) {
+      const updatedCycle = { ...cycle, ...updatedData };
+      await scheduleNotificationForCycle(updatedCycle);
+    }
+    
+    return success;
   } catch (error) {
     console.error('Döngü tamamlanamadı:', error);
     return false;

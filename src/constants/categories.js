@@ -1,67 +1,111 @@
 // Kategori sabitleri - ev döngüsü öğeleri için kullanılacak kategoriler
 export const CATEGORIES = [
   {
+    id: 'su',
+    name: 'Su İçme',
+    icon: '💧',
+    color: '#03A9F4',
+    defaultPeriod: 2,
+    periodUnit: 'hours' // Saatlik hatırlatma
+  },
+  {
+    id: 'ilac',
+    name: 'İlaç',
+    icon: '💊',
+    color: '#E53935',
+    defaultPeriod: 8,
+    periodUnit: 'hours' // Saatlik hatırlatma
+  },
+  {
     id: 'bitki',
     name: 'Bitki',
     icon: '🌱',
     color: '#4CAF50',
-    defaultPeriod: 7 // varsayılan hatırlatma periyodu (gün)
+    defaultPeriod: 7,
+    periodUnit: 'days' // Birim: days (gün) veya hours (saat)
   },
   {
     id: 'havlu',
     name: 'Havlu',
     icon: '🧺',
     color: '#2196F3',
-    defaultPeriod: 3
+    defaultPeriod: 3,
+    periodUnit: 'days'
   },
   {
     id: 'yastik',
     name: 'Yastık',
     icon: '🛏️',
     color: '#FF9800',
-    defaultPeriod: 30
+    defaultPeriod: 30,
+    periodUnit: 'days'
   },
   {
     id: 'filtre',
     name: 'Filtre',
     icon: '🌪️',
     color: '#9C27B0',
-    defaultPeriod: 90
+    defaultPeriod: 90,
+    periodUnit: 'days'
   },
   {
     id: 'carsaf',
     name: 'Çarşaf',
     icon: '🛌',
     color: '#E91E63',
-    defaultPeriod: 7
+    defaultPeriod: 7,
+    periodUnit: 'days'
   },
   {
     id: 'temizlik',
     name: 'Temizlik',
-    icon: '🧽',
+    icon: '🧹',
     color: '#00BCD4',
-    defaultPeriod: 1
+    defaultPeriod: 1,
+    periodUnit: 'days'
   },
   {
     id: 'ev',
     name: 'Ev Bakımı',
     icon: '🏠',
     color: '#795548',
-    defaultPeriod: 30
+    defaultPeriod: 30,
+    periodUnit: 'days'
   },
   {
     id: 'gida',
     name: 'Gıda Kontrolü',
     icon: '🥛',
     color: '#8BC34A',
-    defaultPeriod: 3
+    defaultPeriod: 3,
+    periodUnit: 'days'
   },
   {
     id: 'diger',
     name: 'Diğer',
     icon: '📋',
     color: '#607D8B',
-    defaultPeriod: 7
+    defaultPeriod: 7,
+    periodUnit: 'days'
+  },
+  // Premium kategoriler
+  {
+    id: 'evcil',
+    name: 'Evcil Hayvan',
+    icon: '🐾',
+    color: '#FF7043',
+    defaultPeriod: 1,
+    periodUnit: 'days',
+    premium: true
+  },
+  {
+    id: 'arac',
+    name: 'Araç Bakımı',
+    icon: '🚗',
+    color: '#5C6BC0',
+    defaultPeriod: 180,
+    periodUnit: 'days',
+    premium: true
   }
 ];
 

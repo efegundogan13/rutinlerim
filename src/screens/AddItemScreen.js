@@ -12,19 +12,22 @@ import {
   Animated
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import * as Notifications from 'expo-notifications';
 import { COLORS, getCategoryById } from '../constants/categories';
-import { addCycle } from '../utils/storage';
+import { addCycle, loadCycles } from '../utils/storage';
 import { scheduleNotificationForCycle } from '../utils/notifications';
+import { canAddCycle, FREE_LIMIT } from '../utils/premium';
 import CategoryPicker from '../components/CategoryPicker';
 
 const AddItemScreen = ({ navigation }) => {
   const [name, setName] = useState('');
-  const [categoryId, setCategoryId] = useState('bitki'); // varsayılan kategori
+  const [categoryId, setCategoryId] = useState('bitki');
   const [period, setPeriod] = useState('7');
-  const [lastCompleted, setLastCompleted] = useState(new Date());
-  const [showDateTimePicker, setShowDateTimePicker] = useState(false);
+  const [periodUnit, setPeriodUnit] = useState('days'); // 'hours' veya 'days'
+  const [reminderTime, setReminderTime] = useState(new Date()); // Sadece günlük için saat
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [saving, setSaving] = useState(false);
-  const scaleAnim = new Animated.Value(0.9);
+  const scaleAnim = React.useRef(new Animated.Value(0.9)).current;
 
   useEffect(() => {
     // Form animasyonu
@@ -40,25 +43,35 @@ const AddItemScreen = ({ navigation }) => {
     if (!period) {
       setPeriod(category.defaultPeriod.toString());
     }
+    // Kategori birimi ayarla
+    setPeriodUnit(category.periodUnit || 'days');
   }, [categoryId]);
 
   // Kategori seçildiğinde
   const handleCategorySelect = (category) => {
     setCategoryId(category.id);
     setPeriod(category.defaultPeriod.toString());
+    setPeriodUnit(category.periodUnit || 'days');
   };
 
-  // Tarih ve saat seçildiğinde
-  const handleDateTimeChange = (event, selectedDateTime) => {
-    if (selectedDateTime) {
-      setLastCompleted(selectedDateTime);
+  // Sonraki hatırlatma zamanını hesapla
+  const calculateNextDue = (periodValue, unit, reminderTimeForDays) => {
+    const now = new Date();
+    const nextDate = new Date(now);
+    const periodNum = parseInt(periodValue);
+    
+    if (unit === 'hours') {
+      // SAATLİK: Şimdiden X saat sonra
+      nextDate.setHours(now.getHours() + periodNum);
+    } else {
+      // GÜNLÜK: X gün sonra, kullanıcının seçtiği saatte
+      nextDate.setDate(now.getDate() + periodNum);
+      nextDate.setHours(reminderTimeForDays.getHours());
+      nextDate.setMinutes(reminderTimeForDays.getMinutes());
+      nextDate.setSeconds(0);
+      nextDate.setMilliseconds(0);
     }
-  };
-
-  // Sonraki tarihi hesapla
-  const calculateNextDue = (lastDate, periodDays) => {
-    const nextDate = new Date(lastDate);
-    nextDate.setDate(nextDate.getDate() + parseInt(periodDays));
+    
     return nextDate;
   };
 
@@ -83,14 +96,40 @@ const AddItemScreen = ({ navigation }) => {
 
     setSaving(true);
     try {
-      const periodDays = parseInt(period);
-      const nextDueDate = calculateNextDue(lastCompleted, periodDays);
+      // Premium kontrolü
+      const existingCycles = await loadCycles();
+      const premiumCheck = await canAddCycle(existingCycles.length);
+      
+      if (!premiumCheck.canAdd) {
+        Alert.alert(
+          '🔒 Premium Özellik',
+          premiumCheck.message,
+          [
+            { text: 'Tamam', style: 'cancel' },
+            { 
+              text: 'Premium Al', 
+              style: 'default',
+              onPress: () => {
+                navigation.navigate('Premium');
+              }
+            }
+          ]
+        );
+        setSaving(false);
+        return;
+      }
+      
+      const now = new Date();
+      const periodValue = parseInt(period);
+      const nextDueDate = calculateNextDue(periodValue, periodUnit, reminderTime);
 
       const newCycle = {
         name: name.trim(),
         categoryId,
-        period: periodDays,
-        lastCompleted: lastCompleted.toISOString(),
+        period: periodValue,
+        periodUnit: periodUnit,
+        reminderTime: periodUnit === 'days' ? reminderTime.toISOString() : null,
+        lastCompleted: now.toISOString(),
         nextDue: nextDueDate.toISOString(),
         notificationsEnabled: true,
         completedCount: 0
@@ -102,16 +141,8 @@ const AddItemScreen = ({ navigation }) => {
         // Bildirim planla
         await scheduleNotificationForCycle(savedCycle);
         
-        Alert.alert(
-          'Başarılı! ✅',
-          'Yeni döngü başarıyla eklendi.',
-          [
-            {
-              text: 'Tamam',
-              onPress: () => navigation.goBack()
-            }
-          ]
-        );
+        // Geri dön
+        navigation.goBack();
       } else {
         Alert.alert('Hata', 'Döngü eklenirken bir hata oluştu.');
       }
@@ -138,18 +169,18 @@ const AddItemScreen = ({ navigation }) => {
     return `${formatDate(date)} ${formatTime(date)}`;
   };
 
-  const nextDueDate = calculateNextDue(lastCompleted, parseInt(period) || 1);
-
   return (
     <KeyboardAvoidingView 
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
     >
-      <Animated.View style={[styles.formContainer, { transform: [{ scale: scaleAnim }] }]}>
+      <View style={styles.formContainer}>
         <ScrollView 
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: 40 }}
         >
           {/* Başlık */}
           <Text style={styles.title}>Yeni Ev Döngüsü</Text>
@@ -176,74 +207,122 @@ const AddItemScreen = ({ navigation }) => {
             <CategoryPicker
               selectedCategory={categoryId}
               onSelectCategory={handleCategorySelect}
+              onPremiumPress={() => navigation.navigate('Premium')}
             />
           </View>
 
           {/* Hatırlatma Periyodu */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Hatırlatma Periyodu (Gün) *</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="Kaç günde bir"
-              placeholderTextColor={COLORS.textSecondary}
-              value={period}
-              onChangeText={setPeriod}
-              keyboardType="numeric"
-              maxLength={3}
-            />
-            <Text style={styles.hint}>
-              Örn: 7 (her hafta), 30 (her ay), 90 (her 3 ay)
-            </Text>
-          </View>
-
-          {/* Son Bakım Tarihi ve Saati */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Son Bakım Tarihi ve Saati</Text>
+            <Text style={styles.label}>Hatırlatma Periyodu *</Text>
             
-            {/* Basit DateTime Button */}
-            <TouchableOpacity
-              style={styles.dateTimeButton}
-              onPress={() => setShowDateTimePicker(!showDateTimePicker)}
-            >
-              <View style={styles.dateTimeContent}>
-                <Text style={styles.dateTimeIcon}>📅🕐</Text>
-                <View style={styles.dateTimeText}>
-                  <Text style={styles.dateText}>{lastCompleted.toLocaleDateString('tr-TR')}</Text>
-                  <Text style={styles.timeText}>{lastCompleted.toLocaleTimeString('tr-TR', {hour: '2-digit', minute: '2-digit'})}</Text>
-                </View>
-                <Text style={styles.expandIcon}>{showDateTimePicker ? '⌄' : '⌃'}</Text>
-              </View>
-            </TouchableOpacity>
-
-            {/* Inline DateTimePicker */}
-            {showDateTimePicker && (
-              <View style={styles.dateTimePickerContainer}>
-                <DateTimePicker
-                  value={lastCompleted}
-                  mode="datetime"
-                  display="compact"
-                  onChange={handleDateTimeChange}
-                  maximumDate={new Date()}
-                  is24Hour={true}
-                  style={styles.dateTimePickerStyle}
-                />
-              </View>
-            )}
+            {/* Saat/Gün Seçici */}
+            <View style={styles.unitSelector}>
+              <TouchableOpacity
+                style={[
+                  styles.unitButton,
+                  periodUnit === 'hours' && styles.unitButtonActive
+                ]}
+                onPress={() => setPeriodUnit('hours')}
+              >
+                <Text style={[
+                  styles.unitButtonText,
+                  periodUnit === 'hours' && styles.unitButtonTextActive
+                ]}>
+                  ⏰ Saat
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[
+                  styles.unitButton,
+                  periodUnit === 'days' && styles.unitButtonActive
+                ]}
+                onPress={() => setPeriodUnit('days')}
+              >
+                <Text style={[
+                  styles.unitButtonText,
+                  periodUnit === 'days' && styles.unitButtonTextActive
+                ]}>
+                  📅 Gün
+                </Text>
+              </TouchableOpacity>
+            </View>
             
-            <Text style={styles.hint}>
-              Son bakımı yaptığınız tarih ve saati seçin
-            </Text>
-          </View>
-
-          {/* Sonraki Tarih Önizlemesi */}
-          {period && (
-            <View style={styles.previewContainer}>
-              <Text style={styles.previewTitle}>Sonraki Hatırlatma</Text>
-              <Text style={styles.previewDate}>
-                🔔 {formatDateTime(nextDueDate)}
+            <View style={styles.periodInputContainer}>
+              <TextInput
+                style={styles.periodInput}
+                placeholder="Periyot"
+                placeholderTextColor={COLORS.textSecondary}
+                value={period}
+                onChangeText={setPeriod}
+                keyboardType="numeric"
+                maxLength={3}
+              />
+              <Text style={styles.periodUnitLabel}>
+                {periodUnit === 'hours' ? 'saat' : 'gün'}
               </Text>
+            </View>
+            <Text style={styles.hint}>
+              {periodUnit === 'hours' 
+                ? 'Örn: 2 (her 2 saatte), 6 (günde 4 kez), 8 (günde 3 kez)' 
+                : 'Örn: 7 (her hafta), 30 (her ay), 90 (her 3 ay)'}
+            </Text>
+          </View>
+
+          {/* GÜNLÜK seçiliyse: Hatırlatma Saati */}
+          {periodUnit === 'days' && (
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>⏰ Hatırlatma Saati</Text>
+              
+              <TouchableOpacity
+                style={styles.dateTimeButton}
+                onPress={() => setShowTimePicker(true)}
+              >
+                <View style={styles.dateTimeContent}>
+                  <Text style={styles.dateTimeIcon}></Text>
+                  <View style={styles.dateTimeText}>
+                    <Text style={styles.timeText}>
+                      {reminderTime.toLocaleTimeString('tr-TR', {hour: '2-digit', minute: '2-digit'})}
+                    </Text>
+                  </View>
+                  <Text style={styles.expandIcon}>⌃</Text>
+                </View>
+              </TouchableOpacity>
+
+              {showTimePicker && (
+                <DateTimePicker
+                  value={reminderTime}
+                  mode="time"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={(event, selectedTime) => {
+                    setShowTimePicker(Platform.OS === 'ios');
+                    if (selectedTime) {
+                      setReminderTime(selectedTime);
+                    }
+                  }}
+                  is24Hour={true}
+                />
+              )}
+              
+              <Text style={styles.hint}>
+                Her {period} günde bir bu saatte hatırlatılacaksınız
+              </Text>
+            </View>
+          )}
+
+          {/* Bilgilendirme */}
+          {period && periodUnit === 'hours' && (
+            <View style={styles.previewContainer}>
               <Text style={styles.previewText}>
-                {parseInt(period)} gün sonra hatırlatılacaksınız
+                ⏰ Her {period} saatte bir hatırlatılacaksınız
+              </Text>
+            </View>
+          )}
+          
+          {period && periodUnit === 'days' && (
+            <View style={styles.previewContainer}>
+              <Text style={styles.previewText}>
+                📅 Her {period} günde bir {reminderTime.toLocaleTimeString('tr-TR', {hour: '2-digit', minute: '2-digit'})} saatinde hatırlatılacaksınız
               </Text>
             </View>
           )}
@@ -261,7 +340,7 @@ const AddItemScreen = ({ navigation }) => {
             </Text>
           </TouchableOpacity>
         </View>
-      </Animated.View>
+      </View>
     </KeyboardAvoidingView>
   );
 };
@@ -301,6 +380,33 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginBottom: 8,
   },
+  unitSelector: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  unitButton: {
+    flex: 1,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  unitButtonActive: {
+    backgroundColor: COLORS.primary + '15',
+    borderColor: COLORS.primary,
+  },
+  unitButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+  },
+  unitButtonTextActive: {
+    color: COLORS.primary,
+  },
   textInput: {
     backgroundColor: COLORS.surface,
     borderWidth: 1,
@@ -310,6 +416,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.text,
     minHeight: 52,
+  },
+  periodInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    minHeight: 52,
+  },
+  periodInput: {
+    flex: 1,
+    fontSize: 16,
+    color: COLORS.text,
+    paddingVertical: 16,
+  },
+  periodUnitLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+    marginLeft: 8,
   },
   hint: {
     fontSize: 12,

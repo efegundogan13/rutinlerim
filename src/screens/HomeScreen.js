@@ -9,7 +9,8 @@ import {
   TextInput,
   Alert,
   Animated,
-  ScrollView
+  ScrollView,
+  Linking
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, CATEGORIES } from '../constants/categories';
@@ -19,9 +20,9 @@ import {
   deleteCycle 
 } from '../utils/storage';
 import { 
-  rescheduleAllNotifications,
   scheduleNotificationForCycle 
 } from '../utils/notifications';
+import { isPremiumUser, FREE_LIMIT } from '../utils/premium';
 import CycleItem from '../components/CycleItem';
 import AnimatedFAB from '../components/AnimatedFAB';
 
@@ -32,7 +33,8 @@ const HomeScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
-  const fadeAnim = new Animated.Value(1); // 0 yerine 1 başlat
+  const [isPremium, setIsPremium] = useState(false);
+  const fadeAnim = React.useRef(new Animated.Value(1)).current;
 
   // Ekran odaklandığında döngüleri yükle
   useFocusEffect(
@@ -56,10 +58,10 @@ const HomeScreen = ({ navigation }) => {
       setLoading(true);
       const loadedCycles = await loadCycles();
       setCycles(loadedCycles);
-      setFilteredCycles(loadedCycles);
       
-      // Bildirimleri yeniden planla
-      await rescheduleAllNotifications(loadedCycles);
+      // Premium durumunu kontrol et
+      const premium = await isPremiumUser();
+      setIsPremium(premium);
     } catch (error) {
       console.error('Döngüler yüklenemedi:', error);
       Alert.alert('Hata', 'Döngüler yüklenirken bir hata oluştu.');
@@ -71,7 +73,11 @@ const HomeScreen = ({ navigation }) => {
   // Yenileme
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadCyclesData();
+    // Minimum 500ms göster (çok hızlı yenilenirse kullanıcı görmez)
+    await Promise.all([
+      loadCyclesData(),
+      new Promise(resolve => setTimeout(resolve, 500))
+    ]);
     setRefreshing(false);
   };
 
@@ -92,8 +98,8 @@ const HomeScreen = ({ navigation }) => {
       filtered = filtered.filter(cycle => cycle.categoryId === selectedFilter);
     }
 
-    // Tarihe göre sırala (en yakın tarih en üstte)
-    filtered.sort((a, b) => new Date(a.nextDue) - new Date(b.nextDue));
+    // Oluşturulma tarihine göre sırala (en yeni en üstte)
+    filtered.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
     setFilteredCycles(filtered);
   }, [cycles, searchText, selectedFilter]);
@@ -153,7 +159,6 @@ const HomeScreen = ({ navigation }) => {
       <TouchableOpacity
         style={[
           styles.filterButton,
-          { paddingHorizontal: 12, minWidth: 50 }, // Daha kompakt Tümü butonu
           selectedFilter === 'all' && styles.activeFilterButton
         ]}
         onPress={() => setSelectedFilter('all')}
@@ -200,6 +205,36 @@ const HomeScreen = ({ navigation }) => {
               value={searchText}
               onChangeText={setSearchText}
             />
+            {!isPremium && (
+              <TouchableOpacity 
+                style={styles.premiumBanner}
+                onPress={() => navigation.navigate('Premium')}
+                activeOpacity={0.85}
+              >
+                <View style={styles.premiumBannerLeft}>
+                  <Text style={styles.premiumBannerEmoji}>👑</Text>
+                  <View>
+                    <Text style={styles.premiumBannerTitle}>Premium'a Geç</Text>
+                    <Text style={styles.premiumBannerSub}>
+                      {cycles.length}/{FREE_LIMIT} döngü kullanıldı
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.premiumBannerArrow}>
+                  <Text style={styles.premiumBannerArrowText}>→</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+            {isPremium && (
+              <TouchableOpacity 
+                style={styles.premiumActiveBanner}
+                onPress={() => Linking.openURL('https://apps.apple.com/account/subscriptions')}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.premiumActiveText}>👑 Premium Aktif</Text>
+                <Text style={styles.premiumManageText}>Aboneliği Yönet</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Kategori filtreleri */}
@@ -226,7 +261,8 @@ const HomeScreen = ({ navigation }) => {
               />
             }
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={{ paddingBottom: 100 }}
+            style={{ flex: 1 }}
           />
         </>
       )}
@@ -268,35 +304,104 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
+  premiumBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFF8E1',
+    borderRadius: 14,
+    padding: 12,
+    marginTop: 10,
+    borderWidth: 1.5,
+    borderColor: '#FFD700',
+    shadowColor: '#FFD700',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  premiumBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  premiumBannerEmoji: {
+    fontSize: 28,
+    marginRight: 10,
+  },
+  premiumBannerTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#333',
+  },
+  premiumBannerSub: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 1,
+  },
+  premiumBannerArrow: {
+    backgroundColor: '#FFD700',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  premiumBannerArrowText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#000',
+  },
+  premiumActiveBanner: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#F0F0FF',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: COLORS.primary + '30',
+  },
+  premiumActiveText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  premiumManageText: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    textDecorationLine: 'underline',
+  },
   filterScrollView: {
     paddingHorizontal: 16,
-    paddingBottom: 4,
-    maxHeight: 50, // Maksimum yükseklik sınırı
+    marginBottom: 8,
+    maxHeight: 64,
   },
   filterContainer: {
     flexDirection: 'row',
-    gap: 6, // Daha az boşluk
-    paddingRight: 16,
+    gap: 8,
     alignItems: 'center',
   },
   filterButton: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
-    minWidth: 40,
-    height: 36, // Sabit yükseklik
+    minWidth: 52,
+    minHeight: 52,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'visible',
   },
   activeFilterButton: {
     backgroundColor: COLORS.primary + '20',
     borderColor: COLORS.primary,
   },
   filterButtonText: {
-    fontSize: 12, // Daha küçük text
+    fontSize: 12,
     color: COLORS.textSecondary,
     fontWeight: '600',
     textAlign: 'center',
@@ -305,11 +410,10 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
   },
   filterEmoji: {
-    fontSize: 22, // Daha büyük emoji
+    fontSize: 28,
+    lineHeight: 36,
     textAlign: 'center',
-  },
-  listContent: {
-    paddingBottom: 100,
+    includeFontPadding: false,
   },
   emptyContainer: {
     flex: 1,

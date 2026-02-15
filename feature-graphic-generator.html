@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Feature Graphic Generator</title>
+</head>
+<body>
+    <canvas id="canvas" width="1024" height="500"></canvas>
+    <br>
+    <button onclick="downloadImage()">İndir (1024x500)</button>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Gradient arka plan
+        const gradient = ctx.createLinearGradient(0, 0, 1024, 500);
+        gradient.addColorStop(0, '#667eea');
+        gradient.addColorStop(1, '#764ba2');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 1024, 500);
+
+        // Logo (sol taraf) - Dairesel döngü
+        const logoX = 200;
+        const logoY = 250;
+        const radius = 100;
+        
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 20;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        
+        // 3 adet döngü oku çiz
+        for (let i = 0; i < 3; i++) {
+            const angle = (i * 120) * Math.PI / 180;
+            ctx.save();
+            ctx.translate(logoX, logoY);
+            ctx.rotate(angle);
+            
+            // Ok gövdesi
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, -Math.PI/3, Math.PI/3);
+            ctx.stroke();
+            
+            // Ok başı
+            ctx.beginPath();
+            const arrowX = radius * Math.cos(Math.PI/3);
+            const arrowY = radius * Math.sin(Math.PI/3);
+            ctx.moveTo(arrowX, arrowY);
+            ctx.lineTo(arrowX - 25, arrowY - 15);
+            ctx.moveTo(arrowX, arrowY);
+            ctx.lineTo(arrowX - 15, arrowY + 25);
+            ctx.stroke();
+            
+            ctx.restore();
+        }
+
+        // Metin (sağ taraf)
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 80px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.fillText('Rutinlerim', 400, 220);
+        
+        ctx.font = '32px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.fillText('Ev rutinlerinizi kolayca takip edin', 400, 280);
+        
+        ctx.font = '28px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.fillText('🌱 Bitki sulama  🧺 Havlu değiştirme  🏠 Ev bakımı', 400, 340);
+
+        function downloadImage() {
+            canvas.toBlob(function(blob) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'rutinlerim-feature-graphic.png';
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+        }
+    </script>
+</body>
+</html>

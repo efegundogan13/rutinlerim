@@ -21,7 +21,26 @@ const formatDateTime = (dateString) => {
 // Tek bir döngü öğesi için kart bileşeni
 const CycleItem = ({ cycle, onPress, onComplete }) => {
   const category = getCategoryById(cycle.categoryId);
-  const daysUntilDue = getDaysUntilDue(cycle.nextDue);
+  
+  // Kalan süreyi hesapla (saat veya gün)
+  const getTimeUntilDue = () => {
+    const now = new Date();
+    const due = new Date(cycle.nextDue);
+    const diffTime = due - now;
+    
+    if (cycle.periodUnit === 'hours') {
+      // Saatlik döngüler için saat cinsinden
+      const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
+      return { value: diffHours, unit: 'hours' };
+    } else {
+      // Günlük döngüler için gün cinsinden
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return { value: diffDays, unit: 'days' };
+    }
+  };
+  
+  const timeUntilDue = getTimeUntilDue();
+  const daysUntilDue = getDaysUntilDue(cycle.nextDue); // Status için hala kullanılıyor
   const status = getCycleStatus(cycle);
 
   // Durum rengini belirle
@@ -38,14 +57,24 @@ const CycleItem = ({ cycle, onPress, onComplete }) => {
 
   // Durum metnini belirle
   const getStatusText = () => {
-    if (daysUntilDue < 0) {
-      return `${Math.abs(daysUntilDue)} gün gecikmiş`;
-    } else if (daysUntilDue === 0) {
-      return 'Bugün yapılacak';
-    } else if (daysUntilDue === 1) {
-      return 'Yarın yapılacak';
+    const { value, unit } = timeUntilDue;
+    
+    if (value < 0) {
+      if (unit === 'hours') {
+        return `${Math.abs(value)} saat gecikmiş`;
+      } else {
+        return `${Math.abs(value)} gün gecikmiş`;
+      }
+    } else if (value === 0) {
+      return unit === 'hours' ? 'Şimdi yapılacak' : 'Bugün yapılacak';
+    } else if (value === 1) {
+      return unit === 'hours' ? '1 saat sonra' : 'Yarın yapılacak';
     } else {
-      return `${daysUntilDue} gün kaldı`;
+      if (unit === 'hours') {
+        return `${value} saat sonra`;
+      } else {
+        return `${value} gün kaldı`;
+      }
     }
   };
 
@@ -82,7 +111,7 @@ const CycleItem = ({ cycle, onPress, onComplete }) => {
           {getStatusText()}
         </Text>
         <Text style={styles.periodText}>
-          Her {cycle.period} günde bir
+          Her {cycle.period} {cycle.periodUnit === 'hours' ? 'saatte' : 'günde'} bir
         </Text>
       </View>
 

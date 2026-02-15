@@ -2,18 +2,22 @@ import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
+import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import { initializePurchases } from './src/utils/premium';
+import { refreshAllNotifications, handleNotificationReceived } from './src/utils/notifications';
 
 // Ekranları import et
 import HomeScreen from './src/screens/HomeScreen';
 import AddItemScreen from './src/screens/AddItemScreen';
 import ItemDetailScreen from './src/screens/ItemDetailScreen';
+import PremiumScreen from './src/screens/PremiumScreen';
 
-// Notification ayarlarını yapılandır
+// Bildirim ayarları - BASİT
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
+    shouldShowAlert: false,  // Uygulama açıkken gösterme
+    shouldPlaySound: false,
     shouldSetBadge: false,
   }),
 });
@@ -22,25 +26,43 @@ const Stack = createStackNavigator();
 
 export default function App() {
   useEffect(() => {
-    // Notification izinlerini iste
+    initializePurchases();
     requestNotificationPermissions();
+    setupAndroidChannels();
+    
+    // Uygulama açıldığında tüm bildirimleri yenile
+    refreshAllNotifications();
+    
+    // Bildirim geldiğinde sonraki bildirimi otomatik planla
+    const notificationListener = Notifications.addNotificationReceivedListener(
+      (notification) => {
+        handleNotificationReceived(notification);
+      }
+    );
+    
+    return () => {
+      notificationListener.remove();
+    };
   }, []);
 
   const requestNotificationPermissions = async () => {
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
+    const { status } = await Notifications.requestPermissionsAsync();
+    if (status === 'granted') {
+      console.log('✅ Bildirim izni alındı');
+    } else {
+      console.log('❌ Bildirim izni reddedildi');
     }
-    
-    if (finalStatus !== 'granted') {
-      console.log('Bildirim izni verilmedi!');
-      return;
+  };
+
+  const setupAndroidChannels = async () => {
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('default', {
+        name: 'Hatırlatmalar',
+        importance: Notifications.AndroidImportance.HIGH,
+        sound: 'default',
+      });
+      console.log('✅ Android channel kuruldu');
     }
-    
-    console.log('Bildirim izni alındı!');
   };
 
   return (
@@ -77,6 +99,17 @@ export default function App() {
           component={ItemDetailScreen} 
           options={{
             title: 'Döngü Detayı',
+          }}
+        />
+        <Stack.Screen 
+          name="Premium" 
+          component={PremiumScreen} 
+          options={{
+            title: 'Premium',
+            headerStyle: {
+              backgroundColor: '#6B73FF',
+            },
+            headerTintColor: '#fff',
           }}
         />
       </Stack.Navigator>

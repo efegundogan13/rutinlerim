@@ -1,152 +1,184 @@
 import * as Notifications from 'expo-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CATEGORIES, getCategoryById } from '../constants/categories';
 
-// Bildirim izinlerini kontrol et
-export const checkNotificationPermissions = async () => {
-  const settings = await Notifications.getPermissionsAsync();
-  return settings.granted;
-};
-
-// Bildirim izni iste
-export const requestNotificationPermissions = async () => {
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
-  
-  if (existingStatus !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
-  
-  return finalStatus === 'granted';
-};
-
-// Tek bir döngü için bildirim planla
+// BİLDİRİM PLANLAMA - BASİT VE NET
 export const scheduleNotificationForCycle = async (cycle) => {
   try {
-    // Mevcut bildirimleri iptal et
+    // Önce eski bildirimleri temizle
     await cancelNotificationForCycle(cycle.id);
     
     const category = getCategoryById(cycle.categoryId);
     const nextDueDate = new Date(cycle.nextDue);
     const now = new Date();
     
-    // Eğer tarih geçmişse, bildirim planlamayı atla
+    // Geçmiş tarihse planlaMA
     if (nextDueDate <= now) {
-      console.log('Tarih geçmiş, bildirim planlanmadı:', cycle.name);
+      console.log('❌ nextDue geçmişte, bildirim YOK');
       return null;
     }
     
-    const notificationIds = [];
+    let notificationTime;
+    let notificationMessage;
     
-    // 1. Uyarı bildirimi: 1 saat öncesinde
-    const warningDate = new Date(nextDueDate);
-    warningDate.setHours(nextDueDate.getHours() - 1);
-    
-    // Eğer uyarı zamanı geçmişse, 30 saniye sonra gönder
-    if (warningDate <= now) {
-      warningDate.setTime(now.getTime() + (30 * 1000));
+    // GÜNLÜK DÖNGÜ: Tam zamanında
+    if (cycle.periodUnit === 'days') {
+      notificationTime = new Date(nextDueDate);
+      notificationMessage = `${category.name} zamanı geldi!`;
+    } 
+    // SAATLİK DÖNGÜ: Tam zamanında
+    else if (cycle.periodUnit === 'hours') {
+      notificationTime = new Date(nextDueDate);
+      notificationMessage = `${category.name} zamanı geldi!`;
     }
     
-    const warningNotificationId = await Notifications.scheduleNotificationAsync({
+    // Bildirim zamanı geçmişte mi?
+    if (notificationTime <= now) {
+      console.log('❌ Bildirim zamanı geçmiş, planlanmadı');
+      return null;
+    }
+    
+    // Kaç saniye sonra bildirim gönderilecek?
+    const secondsUntil = Math.floor((notificationTime - now) / 1000);
+    
+    console.log(`🔔 BİLDİRİM PLANLANIYOR: ${cycle.name}`);
+    console.log(`   Tip: ${cycle.periodUnit === 'days' ? 'GÜNLÜK' : 'SAATLİK'}`);
+    console.log(`   Zaman: ${notificationTime.toLocaleString('tr-TR')}`);
+    console.log(`   Kalan: ${secondsUntil} saniye (${Math.floor(secondsUntil / 60)} dakika)`);
+    
+    // Bildirimi planla
+    const notificationId = await Notifications.scheduleNotificationAsync({
       content: {
-        title: `⚠️ ${category.icon} ${cycle.name}`,
-        body: `${category.name} bakımı 1 saat sonra! Saat: ${formatTime(nextDueDate)}`,
-        data: { 
-          cycleId: cycle.id,
-          type: 'warning'
-        },
+        title: `${category.icon} ${cycle.name}`,
+        body: notificationMessage,
+        data: { cycleId: cycle.id },
         sound: true,
       },
       trigger: {
-        type: 'date',
-        date: warningDate,
+        type: 'timeInterval',
+        seconds: secondsUntil,
+        repeats: false,
       },
     });
     
-    notificationIds.push(warningNotificationId);
-    console.log(`Uyarı bildirimi planlandı: ${cycle.name} - ${formatDateTime(warningDate)}`);
-    
-    // 2. Ana bildirim: Tam zamanında
-    const mainNotificationId = await Notifications.scheduleNotificationAsync({
-      content: {
-        title: `🔔 ${category.icon} ${cycle.name}`,
-        body: `${category.name} bakım zamanı geldi! Şimdi yapmanın tam zamanı.`,
-        data: { 
-          cycleId: cycle.id,
-          type: 'reminder'
-        },
-        sound: true,
-      },
-      trigger: {
-        type: 'date',
-        date: nextDueDate,
-      },
-    });
-    
-    notificationIds.push(mainNotificationId);
-    console.log(`Ana bildirim planlandı: ${cycle.name} - ${formatDateTime(nextDueDate)}`);
-    
-    return notificationIds;
+    console.log(`✅ Bildirim planlandı! ID: ${notificationId}`);
+    return [notificationId];
     
   } catch (error) {
-    console.error('Bildirim planlanamadı:', error);
+    console.error('❌ Bildirim hatası:', error);
     return null;
   }
 };
 
-// Döngü için bildirimi iptal et
+// Döngünün bildirimini iptal et
 export const cancelNotificationForCycle = async (cycleId) => {
   try {
-    // Tüm planlanmış bildirimleri al
-    const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
     
-    // Bu döngü ile ilgili bildirimleri bul ve iptal et
-    for (const notification of scheduledNotifications) {
-      if (notification.content.data?.cycleId === cycleId) {
-        await Notifications.cancelScheduledNotificationAsync(notification.identifier);
-        console.log('Bildirim iptal edildi:', notification.identifier);
+    for (const notif of scheduled) {
+      if (notif.content.data?.cycleId === cycleId) {
+        await Notifications.cancelScheduledNotificationAsync(notif.identifier);
+        console.log(`🗑️ Bildirim iptal edildi: ${notif.identifier}`);
       }
     }
   } catch (error) {
-    console.error('Bildirim iptal edilemedi:', error);
+    console.error('❌ İptal hatası:', error);
   }
 };
 
-// Tüm döngüler için bildirimleri yeniden planla
-export const rescheduleAllNotifications = async (cycles) => {
+// Tüm döngülerin bildirimlerini yenile (uygulama açılışında çağrılır)
+export const refreshAllNotifications = async () => {
   try {
-    // Tüm mevcut bildirimleri iptal et
-    await Notifications.cancelAllScheduledNotificationsAsync();
-    console.log('Tüm mevcut bildirimler iptal edildi');
+    const jsonValue = await AsyncStorage.getItem('@cycles');
+    if (!jsonValue) return;
     
-    // Her döngü için yeni bildirim planla
-    for (const cycle of cycles) {
-      if (cycle.notificationsEnabled !== false) { // Varsayılan olarak etkin
+    const cycles = JSON.parse(jsonValue);
+    const now = new Date();
+    let updated = false;
+    
+    console.log(`🔄 ${cycles.length} döngünün bildirimleri yenileniyor...`);
+    
+    const updatedCycles = cycles.map(cycle => {
+      const nextDue = new Date(cycle.nextDue);
+      
+      // nextDue geçmişte kaldıysa, ileriye al
+      if (nextDue <= now) {
+        let newNextDue = new Date(nextDue);
+        
+        if (cycle.periodUnit === 'hours') {
+          // Saatlik: Geçmişten itibaren periyot ekleyerek şimdiki zamandan sonrasını bul
+          while (newNextDue <= now) {
+            newNextDue.setHours(newNextDue.getHours() + cycle.period);
+          }
+        } else {
+          // Günlük: Geçmişten itibaren gün ekleyerek şimdiki zamandan sonrasını bul
+          while (newNextDue <= now) {
+            newNextDue.setDate(newNextDue.getDate() + cycle.period);
+          }
+        }
+        
+        console.log(`⏩ ${cycle.name}: nextDue güncellendi → ${newNextDue.toLocaleString('tr-TR')}`);
+        updated = true;
+        return { ...cycle, nextDue: newNextDue.toISOString() };
+      }
+      
+      return cycle;
+    });
+    
+    // Güncellenen döngüleri kaydet
+    if (updated) {
+      await AsyncStorage.setItem('@cycles', JSON.stringify(updatedCycles));
+    }
+    
+    // Bildirimleri planla
+    for (const cycle of updatedCycles) {
+      if (cycle.notificationsEnabled !== false) {
         await scheduleNotificationForCycle(cycle);
       }
     }
     
-    console.log(`${cycles.length} döngü için bildirimler yeniden planlandı`);
+    console.log('✅ Tüm bildirimler yenilendi');
   } catch (error) {
-    console.error('Bildirimler yeniden planlanamadı:', error);
+    console.error('❌ Bildirim yenileme hatası:', error);
   }
 };
 
-// Acil bildirim gönder (test amaçlı)
-export const sendImmediateNotification = async (title, body, data = {}) => {
+// Bildirim geldiğinde sonraki bildirimi planla (saatlik döngüler için)
+export const handleNotificationReceived = async (notification) => {
   try {
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title,
-        body,
-        data,
-        sound: true,
-      },
-      trigger: null, // Hemen gönder
-    });
-    console.log('Anında bildirim gönderildi:', title);
+    const cycleId = notification.request.content.data?.cycleId;
+    if (!cycleId) return;
+    
+    const jsonValue = await AsyncStorage.getItem('@cycles');
+    if (!jsonValue) return;
+    
+    const cycles = JSON.parse(jsonValue);
+    const cycle = cycles.find(c => c.id === cycleId);
+    
+    if (cycle && cycle.periodUnit === 'hours') {
+      // Saatlik döngü: nextDue'yu güncelle ve yeni bildirim planla
+      const now = new Date();
+      const nextDue = new Date(cycle.nextDue);
+      
+      // nextDue geçmişte kaldıysa, şu andan itibaren hesapla
+      if (nextDue <= now) {
+        const newNextDue = new Date(now);
+        newNextDue.setHours(newNextDue.getHours() + cycle.period);
+        
+        // Storage'ı güncelle
+        const updatedCycles = cycles.map(c => 
+          c.id === cycleId ? { ...c, nextDue: newNextDue.toISOString() } : c
+        );
+        await AsyncStorage.setItem('@cycles', JSON.stringify(updatedCycles));
+        
+        // Yeni bildirimi planla
+        const updatedCycle = { ...cycle, nextDue: newNextDue.toISOString() };
+        await scheduleNotificationForCycle(updatedCycle);
+        console.log(`🔄 Saatlik döngü yenilendi: ${cycle.name}, sonraki: ${newNextDue.toLocaleString('tr-TR')}`);
+      }
+    }
   } catch (error) {
-    console.error('Anında bildirim gönderilemedi:', error);
+    console.error('❌ Bildirim handler hatası:', error);
   }
 };
 
@@ -179,13 +211,29 @@ export const getDaysUntilDue = (dueDate) => {
 
 // Döngü durumunu belirle (zamanında, gecikmiş, yaklaşan)
 export const getCycleStatus = (cycle) => {
-  const daysUntilDue = getDaysUntilDue(cycle.nextDue);
+  const now = new Date();
+  const due = new Date(cycle.nextDue);
+  const diffMs = due - now;
   
-  if (daysUntilDue < 0) {
-    return 'overdue'; // Gecikmiş
-  } else if (daysUntilDue <= 1) {
-    return 'due_soon'; // Yakında
+  if (cycle.periodUnit === 'hours') {
+    // Saatlik döngüler için saat bazlı kontrol
+    const diffHours = diffMs / (1000 * 60 * 60);
+    if (diffHours < 0) {
+      return 'overdue'; // Gecikmiş
+    } else if (diffHours <= 1) {
+      return 'due_soon'; // 1 saat içinde
+    } else {
+      return 'upcoming'; // Normal
+    }
   } else {
-    return 'upcoming'; // Normal
+    // Günlük döngüler için gün bazlı kontrol
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) {
+      return 'overdue'; // Gecikmiş
+    } else if (diffDays <= 1) {
+      return 'due_soon'; // Yakında
+    } else {
+      return 'upcoming'; // Normal
+    }
   }
 };

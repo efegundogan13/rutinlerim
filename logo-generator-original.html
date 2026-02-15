@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rutinlerim - Özel Logo Tasarımları</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #f0f0f0;
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+        }
+        .logo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+        .logo-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        .logo-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+        }
+        .logo-preview {
+            width: 240px;
+            height: 240px;
+            margin: 0 auto 20px;
+            border-radius: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .logo-name {
+            font-weight: 600;
+            font-size: 18px;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        .logo-desc {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #6B73FF;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #5561DD;
+        }
+        
+        /* Logo 1: Circular Arrows */
+        .logo1 {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        /* Logo 2: Checklist Stack */
+        .logo2 {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        /* Logo 3: Time Cycle */
+        .logo3 {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        /* Logo 4: R Letter */
+        .logo4 {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+        
+        /* Logo 5: Infinity Loop */
+        .logo5 {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+        
+        /* Logo 6: Grid Pattern */
+        .logo6 {
+            background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✨ Rutinlerim - Özel Logo Tasarımları</h1>
+        <p class="subtitle">Özgün, modern ve minimalist logolar</p>
+        
+        <div class="logo-grid">
+            <!-- Logo 1: Circular Arrows -->
+            <div class="logo-card">
+                <canvas id="logo1" class="logo-preview logo1" width="240" height="240"></canvas>
+                <div class="logo-name">Dairesel Döngü</div>
+                <p class="logo-desc">3 ok ile sürekli döngüyü simgeler</p>
+                <button onclick="downloadLogo('logo1')">İndir (1024x1024)</button>
+            </div>
+
+            <!-- Logo 2: Checklist Stack -->
+            <div class="logo-card">
+                <canvas id="logo2" class="logo-preview logo2" width="240" height="240"></canvas>
+                <div class="logo-name">Liste Katmanları</div>
+                <p class="logo-desc">Üst üste listeler, düzenli yaşam</p>
+                <button onclick="downloadLogo('logo2')">İndir (1024x1024)</button>
+            </div>
+
+            <!-- Logo 3: Time Cycle -->
+            <div class="logo-card">
+                <canvas id="logo3" class="logo-preview logo3" width="240" height="240"></canvas>
+                <div class="logo-name">Saat Döngüsü</div>
+                <p class="logo-desc">Zamanla dönen rutinler</p>
+                <button onclick="downloadLogo('logo3')">İndir (1024x1024)</button>
+            </div>
+
+            <!-- Logo 4: R Letter -->
+            <div class="logo-card">
+                <canvas id="logo4" class="logo-preview logo4" width="240" height="240"></canvas>
+                <div class="logo-name">R Harfi (Minimal)</div>
+                <p class="logo-desc">Rutinlerim'in modern R'si</p>
+                <button onclick="downloadLogo('logo4')">İndir (1024x1024)</button>
+            </div>
+
+            <!-- Logo 5: Infinity Loop -->
+            <div class="logo-card">
+                <canvas id="logo5" class="logo-preview logo5" width="240" height="240"></canvas>
+                <div class="logo-name">Sonsuz Döngü</div>
+                <p class="logo-desc">Hiç bitmeyen rutinler</p>
+                <button onclick="downloadLogo('logo5')">İndir (1024x1024)</button>
+            </div>
+
+            <!-- Logo 6: Grid Pattern -->
+            <div class="logo-card">
+                <canvas id="logo6" class="logo-preview logo6" width="240" height="240"></canvas>
+                <div class="logo-name">Düzenli Izgara</div>
+                <p class="logo-desc">Organize yaşamı temsil eder</p>
+                <button onclick="downloadLogo('logo6')">İndir (1024x1024)</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Logo çizim fonksiyonları
+        function drawLogo1(ctx, size) {
+            // Dairesel 3 ok döngüsü
+            const center = size / 2;
+            const radius = size * 0.28;
+            
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = size * 0.06;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            // 3 adet döngü oku çiz
+            for (let i = 0; i < 3; i++) {
+                const angle = (i * 120) * Math.PI / 180;
+                ctx.save();
+                ctx.translate(center, center);
+                ctx.rotate(angle);
+                
+                // Ok gövdesi (çeyrek çember)
+                ctx.beginPath();
+                ctx.arc(0, 0, radius, -Math.PI/3, Math.PI/3);
+                ctx.stroke();
+                
+                // Ok başı
+                ctx.beginPath();
+                const arrowX = radius * Math.cos(Math.PI/3);
+                const arrowY = radius * Math.sin(Math.PI/3);
+                ctx.moveTo(arrowX, arrowY);
+                ctx.lineTo(arrowX - size * 0.08, arrowY - size * 0.05);
+                ctx.moveTo(arrowX, arrowY);
+                ctx.lineTo(arrowX - size * 0.05, arrowY + size * 0.08);
+                ctx.stroke();
+                
+                ctx.restore();
+            }
+        }
+
+        function drawLogo2(ctx, size) {
+            // Üst üste 3 liste satırı
+            ctx.fillStyle = 'white';
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = size * 0.04;
+            ctx.lineCap = 'round';
+            
+            const spacing = size * 0.18;
+            const startY = size * 0.3;
+            const checkSize = size * 0.08;
+            const lineX = size * 0.4;
+            const lineWidth = size * 0.35;
+            
+            for (let i = 0; i < 3; i++) {
+                const y = startY + (i * spacing);
+                
+                // Checkbox
+                ctx.strokeRect(size * 0.2, y - checkSize/2, checkSize, checkSize);
+                
+                // Check işareti (ilk ikisi için)
+                if (i < 2) {
+                    ctx.beginPath();
+                    ctx.moveTo(size * 0.22, y);
+                    ctx.lineTo(size * 0.24, y + checkSize * 0.3);
+                    ctx.lineTo(size * 0.28, y - checkSize * 0.2);
+                    ctx.stroke();
+                }
+                
+                // Satır
+                ctx.fillRect(lineX, y - size * 0.015, lineWidth, size * 0.03);
+            }
+        }
+
+        function drawLogo3(ctx, size) {
+            // Saat yönünde dönen ok dairesi
+            const center = size / 2;
+            const radius = size * 0.3;
+            
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = size * 0.06;
+            ctx.lineCap = 'round';
+            
+            // Daire
+            ctx.beginPath();
+            ctx.arc(center, center, radius, 0, Math.PI * 1.5);
+            ctx.stroke();
+            
+            // Ok başı
+            const arrowSize = size * 0.1;
+            ctx.beginPath();
+            ctx.moveTo(center, center - radius);
+            ctx.lineTo(center - arrowSize * 0.5, center - radius - arrowSize);
+            ctx.moveTo(center, center - radius);
+            ctx.lineTo(center + arrowSize, center - radius - arrowSize * 0.5);
+            ctx.stroke();
+            
+            // Merkez nokta
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(center, center, size * 0.04, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawLogo4(ctx, size) {
+            // Stilize R harfi
+            ctx.fillStyle = 'white';
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = size * 0.08;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            const x = size * 0.3;
+            const y = size * 0.25;
+            const width = size * 0.25;
+            const height = size * 0.5;
+            
+            ctx.beginPath();
+            // Dikey çizgi
+            ctx.moveTo(x, y);
+            ctx.lineTo(x, y + height);
+            
+            // Üst kavis
+            ctx.moveTo(x, y);
+            ctx.quadraticCurveTo(x + width * 1.5, y, x + width * 1.5, y + height * 0.4);
+            ctx.quadraticCurveTo(x + width * 1.5, y + height * 0.5, x, y + height * 0.5);
+            
+            // Çapraz bacak
+            ctx.moveTo(x + width * 0.3, y + height * 0.5);
+            ctx.lineTo(x + width * 1.3, y + height);
+            
+            ctx.stroke();
+        }
+
+        function drawLogo5(ctx, size) {
+            // Sonsuz (∞) işareti
+            const center = size / 2;
+            const radius = size * 0.15;
+            
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = size * 0.06;
+            ctx.lineCap = 'round';
+            
+            ctx.beginPath();
+            // Sol döngü
+            ctx.arc(center - radius, center, radius, 0, Math.PI * 2);
+            // Sağ döngü
+            ctx.moveTo(center + radius * 2, center);
+            ctx.arc(center + radius, center, radius, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        function drawLogo6(ctx, size) {
+            // 3x3 grid pattern
+            ctx.fillStyle = 'white';
+            const gridSize = 3;
+            const cellSize = size * 0.15;
+            const gap = size * 0.06;
+            const startX = (size - (cellSize * gridSize + gap * (gridSize - 1))) / 2;
+            const startY = startX;
+            
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    const x = startX + (cellSize + gap) * j;
+                    const y = startY + (cellSize + gap) * i;
+                    const radius = size * 0.03;
+                    
+                    // Rounded rectangle
+                    ctx.beginPath();
+                    ctx.moveTo(x + radius, y);
+                    ctx.lineTo(x + cellSize - radius, y);
+                    ctx.quadraticCurveTo(x + cellSize, y, x + cellSize, y + radius);
+                    ctx.lineTo(x + cellSize, y + cellSize - radius);
+                    ctx.quadraticCurveTo(x + cellSize, y + cellSize, x + cellSize - radius, y + cellSize);
+                    ctx.lineTo(x + radius, y + cellSize);
+                    ctx.quadraticCurveTo(x, y + cellSize, x, y + cellSize - radius);
+                    ctx.lineTo(x, y + radius);
+                    ctx.quadraticCurveTo(x, y, x + radius, y);
+                    ctx.fill();
+                }
+            }
+        }
+
+        // Canvas'lara logoları çiz
+        window.onload = function() {
+            drawLogo1(document.getElementById('logo1').getContext('2d'), 240);
+            drawLogo2(document.getElementById('logo2').getContext('2d'), 240);
+            drawLogo3(document.getElementById('logo3').getContext('2d'), 240);
+            drawLogo4(document.getElementById('logo4').getContext('2d'), 240);
+            drawLogo5(document.getElementById('logo5').getContext('2d'), 240);
+            drawLogo6(document.getElementById('logo6').getContext('2d'), 240);
+        };
+
+        // İndirme fonksiyonu
+        function downloadLogo(logoId) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 1024;
+            const ctx = canvas.getContext('2d');
+            
+            // Gradient
+            let gradient;
+            switch(logoId) {
+                case 'logo1':
+                    gradient = ctx.createLinearGradient(0, 0, 1024, 1024);
+                    gradient.addColorStop(0, '#667eea');
+                    gradient.addColorStop(1, '#764ba2');
+                    break;
+                case 'logo2':
+                    gradient = ctx.createLinearGradient(0, 0, 1024, 1024);
+                    gradient.addColorStop(0, '#f093fb');
+                    gradient.addColorStop(1, '#f5576c');
+                    break;
+                case 'logo3':
+                    gradient = ctx.createLinearGradient(0, 0, 1024, 1024);
+                    gradient.addColorStop(0, '#4facfe');
+                    gradient.addColorStop(1, '#00f2fe');
+                    break;
+                case 'logo4':
+                    gradient = ctx.createLinearGradient(0, 0, 1024, 1024);
+                    gradient.addColorStop(0, '#43e97b');
+                    gradient.addColorStop(1, '#38f9d7');
+                    break;
+                case 'logo5':
+                    gradient = ctx.createLinearGradient(0, 0, 1024, 1024);
+                    gradient.addColorStop(0, '#fa709a');
+                    gradient.addColorStop(1, '#fee140');
+                    break;
+                case 'logo6':
+                    gradient = ctx.createLinearGradient(0, 0, 1024, 1024);
+                    gradient.addColorStop(0, '#30cfd0');
+                    gradient.addColorStop(1, '#330867');
+                    break;
+            }
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 1024, 1024);
+            
+            // Logoyu çiz
+            const drawFunctions = {
+                'logo1': drawLogo1,
+                'logo2': drawLogo2,
+                'logo3': drawLogo3,
+                'logo4': drawLogo4,
+                'logo5': drawLogo5,
+                'logo6': drawLogo6
+            };
+            
+            drawFunctions[logoId](ctx, 1024);
+            
+            // İndir
+            canvas.toBlob(function(blob) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'rutinlerim-icon-1024.png';
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+        }
+    </script>
+</body>
+</html>

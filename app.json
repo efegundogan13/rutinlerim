@@ -2,12 +2,12 @@
   "expo": {
     "name": "Rutinlerim",
     "slug": "rutinlerim",
-    "version": "1.0.0",
+    "version": "1.3.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "description": "Ev rutinlerinizi kolayca takip edin. Bitki sulama, havlu değiştirme, filtre temizleme gibi düzenli yapılması gereken işler için hatırlatıcı.",
+    "description": "Ev rutinlerinizi kolayca takip edin. Bitki sulama, havlu değiştirme, filtre temizleme, su içme ve ilaç hatırlatması gibi düzenli yapılması gereken işler için hatırlatıcı.",
     "privacy": "unlisted",
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -20,16 +20,14 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.rutinlerim.app",
-      "buildNumber": "1",
+      "buildNumber": "4",
       "infoPlist": {
-        "UIBackgroundModes": [
-          "background-fetch"
-        ]
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "com.rutinlerim.app",
-      "versionCode": 1,
+      "versionCode": 4,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#6B73FF"
@@ -59,7 +57,8 @@
           "defaultChannel": "default"
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      "react-native-purchases"
     ],
     "extra": {
       "eas": {
