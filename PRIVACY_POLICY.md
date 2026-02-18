@@ -20,6 +20,11 @@ Bu uygulama herhangi bir kişisel veri toplamaz, saklamaz veya üçüncü tarafl
 - Üçüncü taraf analytics kullanılmaz
 - Crash reporting bulunmaz
 
+## Abonelik ve Satın Alma
+- Premium abonelik işlemleri Apple App Store ve Google Play Store üzerinden gerçekleştirilir.
+- Ödeme bilgileriniz tarafımızca saklanmaz; Apple veya Google tarafından güvenli şekilde işlenir.
+- Abonelik yönetimi ve iptali için ilgili platformun abonelik ayarlarını kullanabilirsiniz.
+
 ## İletişim
 Sorularınız için: efegundogan01@gmail.com
 

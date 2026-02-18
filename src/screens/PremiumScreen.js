@@ -182,6 +182,21 @@ const PremiumScreen = ({ navigation }) => {
         >
           <Text style={styles.manageButtonText}>Aboneliği Yönet / İptal Et</Text>
         </TouchableOpacity>
+
+        {/* Gizlilik Politikası ve Kullanım Koşulları Linkleri */}
+        <View style={styles.legalLinks}>
+          <TouchableOpacity
+            onPress={() => Linking.openURL('https://github.com/efegundogan13/rutinlerim/blob/main/PRIVACY_POLICY.md')}
+          >
+            <Text style={styles.legalLinkText}>Gizlilik Politikası</Text>
+          </TouchableOpacity>
+          <Text style={styles.legalSeparator}>|</Text>
+          <TouchableOpacity
+            onPress={() => Linking.openURL('https://github.com/efegundogan13/rutinlerim/blob/main/TERMS_OF_USE.md')}
+          >
+            <Text style={styles.legalLinkText}>Kullanım Koşulları (EULA)</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     );
   }
@@ -268,9 +283,37 @@ const PremiumScreen = ({ navigation }) => {
         <Text style={styles.manageButtonText}>Aboneliği Yönet / İptal Et</Text>
       </TouchableOpacity>
 
+      {/* Abonelik Bilgileri */}
+      <View style={styles.subscriptionInfo}>
+        <Text style={styles.subscriptionInfoTitle}>Abonelik Bilgileri</Text>
+        <Text style={styles.subscriptionInfoText}>
+          • Abonelik Adı: Rutinlerim Premium{'\n'}
+          • Süre: Aylık (her ay otomatik yenilenir){'\n'}
+          • Fiyat: {getPriceText()}/ay{'\n'}
+          • Ödeme {Platform.OS === 'ios' ? 'Apple' : 'Google'} hesabınız üzerinden alınır.{'\n'}
+          • Mevcut dönem bitiminden en az 24 saat önce iptal edilmezse otomatik yenilenir.{'\n'}
+          • {Platform.OS === 'ios' ? 'Ayarlar → Apple ID → Abonelikler' : 'Google Play → Abonelikler'} bölümünden istediğiniz zaman iptal edebilirsiniz.
+        </Text>
+      </View>
+
+      {/* Gizlilik Politikası ve Kullanım Koşulları Linkleri */}
+      <View style={styles.legalLinks}>
+        <TouchableOpacity
+          onPress={() => Linking.openURL('https://github.com/efegundogan13/rutinlerim/blob/main/PRIVACY_POLICY.md')}
+        >
+          <Text style={styles.legalLinkText}>Gizlilik Politikası</Text>
+        </TouchableOpacity>
+        <Text style={styles.legalSeparator}>|</Text>
+        <TouchableOpacity
+          onPress={() => Linking.openURL('https://github.com/efegundogan13/rutinlerim/blob/main/TERMS_OF_USE.md')}
+        >
+          <Text style={styles.legalLinkText}>Kullanım Koşulları (EULA)</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Alt bilgi */}
       <Text style={styles.disclaimer}>
-        Ödeme {Platform.OS === 'ios' ? 'Apple' : 'Google'} hesabınız üzerinden alınır. Abonelik her ay otomatik yenilenir. {Platform.OS === 'ios' ? 'Ayarlar → Abonelikler' : 'Google Play → Abonelikler'} bölümünden istediğiniz zaman iptal edebilirsiniz.
+        Aboneliğe devam ederek Kullanım Koşullarını ve Gizlilik Politikasını kabul etmiş olursunuz.
       </Text>
     </ScrollView>
   );
@@ -455,6 +498,41 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 16,
     paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  subscriptionInfo: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  subscriptionInfoTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 8,
+  },
+  subscriptionInfoText: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    lineHeight: 20,
+  },
+  legalLinks: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingVertical: 8,
+  },
+  legalLinkText: {
+    fontSize: 13,
+    color: COLORS.primary,
+    textDecorationLine: 'underline',
+  },
+  legalSeparator: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginHorizontal: 10,
   },
 });
 

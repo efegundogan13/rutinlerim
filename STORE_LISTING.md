@@ -48,6 +48,16 @@ Rutinlerim, ev işlerinizi ve bakım rutinlerinizi kolayca yönetmenize yardımc
 
 Evinizdeki düzeni korumak artık çok kolay! Rutinlerim'i indirin ve bir daha hiçbir işi unutmayın.
 
+📋 **Premium Abonelik:**
+- Rutinlerim Premium aylık otomatik yenilenen abonelik sunar.
+- Abonelik ile sınırsız döngü ekleme ve tüm kategorilere erişim sağlanır.
+- Ödeme Apple/Google hesabınız üzerinden alınır.
+- Mevcut dönem bitiminden en az 24 saat önce iptal edilmezse abonelik otomatik yenilenir.
+- Aboneliğinizi istediğiniz zaman Ayarlar → Abonelikler bölümünden iptal edebilirsiniz.
+
+🔗 **Gizlilik Politikası:** https://github.com/efegundogan13/rutinlerim/blob/main/PRIVACY_POLICY.md
+🔗 **Kullanım Koşulları (EULA):** https://github.com/efegundogan13/rutinlerim/blob/main/TERMS_OF_USE.md
+
 ---
 
 ## Anahtar Kelimeler
@@ -73,9 +83,12 @@ rutinler, hatırlatıcı, ev işleri, bitki sulama, havlu değiştirme, temizlik
 ---
 
 ## Gizlilik Politikası URL
-https://github.com/[kullaniciadi]/rutinlerim/blob/main/PRIVACY_POLICY.md
+https://github.com/efegundogan13/rutinlerim/blob/main/PRIVACY_POLICY.md
 
-(Not: GitHub'a yükledikten sonra bu URL'yi güncelleyin)
+## Kullanım Koşulları (EULA) URL
+https://github.com/efegundogan13/rutinlerim/blob/main/TERMS_OF_USE.md
+
+(Not: Bu URL'ler App Store Connect'te ilgili alanlara girilmelidir)
 
 ---
 
