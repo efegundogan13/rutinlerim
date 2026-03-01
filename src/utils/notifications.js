@@ -5,6 +5,12 @@ import { CATEGORIES, getCategoryById } from '../constants/categories';
 // BİLDİRİM PLANLAMA - BASİT VE NET
 export const scheduleNotificationForCycle = async (cycle) => {
   try {
+    // nextDue yoksa bildirim planlama
+    if (!cycle.nextDue) {
+      console.log(`❌ ${cycle.name}: nextDue tanımsız, bildirim planlanmadı`);
+      return null;
+    }
+
     // Önce eski bildirimleri temizle
     await cancelNotificationForCycle(cycle.id);
     
@@ -21,16 +27,9 @@ export const scheduleNotificationForCycle = async (cycle) => {
     let notificationTime;
     let notificationMessage;
     
-    // GÜNLÜK DÖNGÜ: Tam zamanında
-    if (cycle.periodUnit === 'days') {
-      notificationTime = new Date(nextDueDate);
-      notificationMessage = `${category.name} zamanı geldi!`;
-    } 
-    // SAATLİK DÖNGÜ: Tam zamanında
-    else if (cycle.periodUnit === 'hours') {
-      notificationTime = new Date(nextDueDate);
-      notificationMessage = `${category.name} zamanı geldi!`;
-    }
+    // Bildirim zamanını ayarla
+    notificationTime = new Date(nextDueDate);
+    notificationMessage = `${category.name} zamanı geldi!`;
     
     // Bildirim zamanı geçmişte mi?
     if (notificationTime <= now) {
@@ -43,7 +42,7 @@ export const scheduleNotificationForCycle = async (cycle) => {
     
     console.log(`🔔 BİLDİRİM PLANLANIYOR: ${cycle.name}`);
     console.log(`   Tip: ${cycle.periodUnit === 'days' ? 'GÜNLÜK' : 'SAATLİK'}`);
-    console.log(`   Zaman: ${notificationTime.toLocaleString('tr-TR')}`);
+    console.log(`   Zaman: ${notificationTime.toISOString()}`);
     console.log(`   Kalan: ${secondsUntil} saniye (${Math.floor(secondsUntil / 60)} dakika)`);
     
     // Bildirimi planla
@@ -99,6 +98,12 @@ export const refreshAllNotifications = async () => {
     console.log(`🔄 ${cycles.length} döngünün bildirimleri yenileniyor...`);
     
     const updatedCycles = cycles.map(cycle => {
+      // nextDue yoksa atla
+      if (!cycle.nextDue) {
+        console.log(`⚠️ ${cycle.name}: nextDue tanımsız, atlanıyor`);
+        return cycle;
+      }
+
       const nextDue = new Date(cycle.nextDue);
       
       // nextDue geçmişte kaldıysa, ileriye al
@@ -117,7 +122,7 @@ export const refreshAllNotifications = async () => {
           }
         }
         
-        console.log(`⏩ ${cycle.name}: nextDue güncellendi → ${newNextDue.toLocaleString('tr-TR')}`);
+        console.log(`⏩ ${cycle.name}: nextDue güncellendi → ${newNextDue.toISOString()}`);
         updated = true;
         return { ...cycle, nextDue: newNextDue.toISOString() };
       }
@@ -174,7 +179,7 @@ export const handleNotificationReceived = async (notification) => {
         // Yeni bildirimi planla
         const updatedCycle = { ...cycle, nextDue: newNextDue.toISOString() };
         await scheduleNotificationForCycle(updatedCycle);
-        console.log(`🔄 Saatlik döngü yenilendi: ${cycle.name}, sonraki: ${newNextDue.toLocaleString('tr-TR')}`);
+        console.log(`🔄 Saatlik döngü yenilendi: ${cycle.name}, sonraki: ${newNextDue.toISOString()}`);
       }
     }
   } catch (error) {
@@ -197,7 +202,11 @@ export const formatTime = (date) => {
 // Tarih ve saat formatla
 export const formatDateTime = (date) => {
   const d = new Date(date);
-  return d.toLocaleString('tr-TR');
+  try {
+    return d.toLocaleString('tr-TR');
+  } catch {
+    return d.toISOString();
+  }
 };
 
 // Kalan gün sayısını hesapla
