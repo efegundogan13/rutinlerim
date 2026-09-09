@@ -177,31 +177,40 @@ const ItemDetailScreen = ({ route, navigation }) => {
     }
   };
 
-  // Periyod değiştiğinde sonraki tarihi güncelle
+  // Periyod sayısı veya birimi (saat/gün) değiştiğinde sonraki tarihi yeniden hesapla
+  const recalcNextDue = (newPeriod, newUnit) => {
+    if (!newPeriod || isNaN(newPeriod)) return;
+    const now = new Date();
+    const newNextDate = new Date(now);
+    const periodNum = parseInt(newPeriod);
+
+    if (newUnit === 'hours') {
+      // Saatlik: şimdiden X saat sonra, şimdiki dakikada
+      newNextDate.setHours(now.getHours() + periodNum);
+      newNextDate.setMinutes(now.getMinutes());
+      newNextDate.setSeconds(0);
+      newNextDate.setMilliseconds(0);
+    } else {
+      // Günlük: X gün sonra, kullanıcının seçtiği saatte
+      newNextDate.setDate(now.getDate() + periodNum);
+      newNextDate.setHours(lastCompleted.getHours());
+      newNextDate.setMinutes(lastCompleted.getMinutes());
+      newNextDate.setSeconds(0);
+      newNextDate.setMilliseconds(0);
+    }
+
+    setNextDue(newNextDate);
+  };
+
   const handlePeriodChange = (newPeriod) => {
     setPeriod(newPeriod);
-    if (newPeriod && !isNaN(newPeriod)) {
-      const now = new Date();
-      const newNextDate = new Date(now);
-      const periodNum = parseInt(newPeriod);
-      
-      if (periodUnit === 'hours') {
-        // Saatlik: şimdiden X saat sonra, kullanıcının seçtiği dakikada
-        newNextDate.setHours(now.getHours() + periodNum);
-        newNextDate.setMinutes(lastCompleted.getMinutes());
-        newNextDate.setSeconds(0);
-        newNextDate.setMilliseconds(0);
-      } else {
-        // Günlük: X gün sonra, kullanıcının seçtiği saatte
-        newNextDate.setDate(now.getDate() + periodNum);
-        newNextDate.setHours(lastCompleted.getHours());
-        newNextDate.setMinutes(lastCompleted.getMinutes());
-        newNextDate.setSeconds(0);
-        newNextDate.setMilliseconds(0);
-      }
-      
-      setNextDue(newNextDate);
-    }
+    recalcNextDue(newPeriod, periodUnit);
+  };
+
+  // Saat/Gün birimi değiştiğinde de sonraki tarihi yeniden hesapla
+  const handleUnitChange = (newUnit) => {
+    setPeriodUnit(newUnit);
+    recalcNextDue(period, newUnit);
   };
 
   // Döngüyü kaydet
@@ -227,8 +236,9 @@ const ItemDetailScreen = ({ route, navigation }) => {
         lastCompleted: lastCompleted.toISOString(),
         nextDue: nextDue.toISOString(),
         notificationsEnabled,
-        // Günlük döngüler için reminderTime'ı koru
-        reminderTime: cycle.reminderTime || lastCompleted.toISOString()
+        // Günlük döngülerde bildirim saati kullanıcının ayarladığı nextDue'dan türetilir;
+        // saatlik döngülerde saat bilgisi kullanılmadığı için null bırakılır
+        reminderTime: periodUnit === 'days' ? nextDue.toISOString() : null
       };
 
       const success = await updateCycle(cycle.id, updatedData);
@@ -473,7 +483,7 @@ const ItemDetailScreen = ({ route, navigation }) => {
                     styles.unitButton,
                     periodUnit === 'hours' && styles.unitButtonActive
                   ]}
-                  onPress={() => setPeriodUnit('hours')}
+                  onPress={() => handleUnitChange('hours')}
                 >
                   <Text style={[
                     styles.unitButtonText,
@@ -482,13 +492,13 @@ const ItemDetailScreen = ({ route, navigation }) => {
                     ⏰ Saat
                   </Text>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity
                   style={[
                     styles.unitButton,
                     periodUnit === 'days' && styles.unitButtonActive
                   ]}
-                  onPress={() => setPeriodUnit('days')}
+                  onPress={() => handleUnitChange('days')}
                 >
                   <Text style={[
                     styles.unitButtonText,
