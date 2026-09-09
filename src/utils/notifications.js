@@ -148,39 +148,50 @@ export const refreshAllNotifications = async () => {
   }
 };
 
-// Bildirim geldiğinde sonraki bildirimi planla (saatlik döngüler için)
+// Bildirim geldiğinde sonraki bildirimi otomatik planla (saatlik VE günlük döngüler için).
+// Kullanıcı bildirimi görüp "Tamamla"ya basmasa bile bir sonraki hatırlatma kurulur;
+// aksi halde uygulama tekrar açılana kadar döngü sessizce "gecikmiş" durumda kalırdı.
 export const handleNotificationReceived = async (notification) => {
   try {
     const cycleId = notification.request.content.data?.cycleId;
     if (!cycleId) return;
-    
+
     const jsonValue = await AsyncStorage.getItem('@cycles');
     if (!jsonValue) return;
-    
+
     const cycles = JSON.parse(jsonValue);
     const cycle = cycles.find(c => c.id === cycleId);
-    
-    if (cycle && cycle.periodUnit === 'hours') {
-      // Saatlik döngü: nextDue'yu güncelle ve yeni bildirim planla
-      const now = new Date();
-      const nextDue = new Date(cycle.nextDue);
-      
-      // nextDue geçmişte kaldıysa, şu andan itibaren hesapla
-      if (nextDue <= now) {
-        const newNextDue = new Date(now);
+
+    if (!cycle) return;
+
+    const now = new Date();
+    const nextDue = new Date(cycle.nextDue);
+
+    // nextDue geçmişte kaldıysa, şu andan itibaren hesapla
+    if (nextDue <= now) {
+      const newNextDue = new Date(now);
+
+      if (cycle.periodUnit === 'hours') {
         newNextDue.setHours(newNextDue.getHours() + cycle.period);
-        
-        // Storage'ı güncelle
-        const updatedCycles = cycles.map(c => 
-          c.id === cycleId ? { ...c, nextDue: newNextDue.toISOString() } : c
-        );
-        await AsyncStorage.setItem('@cycles', JSON.stringify(updatedCycles));
-        
-        // Yeni bildirimi planla
-        const updatedCycle = { ...cycle, nextDue: newNextDue.toISOString() };
-        await scheduleNotificationForCycle(updatedCycle);
-        console.log(`🔄 Saatlik döngü yenilendi: ${cycle.name}, sonraki: ${newNextDue.toISOString()}`);
+      } else {
+        const reminderTime = cycle.reminderTime ? new Date(cycle.reminderTime) : now;
+        newNextDue.setDate(newNextDue.getDate() + cycle.period);
+        newNextDue.setHours(reminderTime.getHours());
+        newNextDue.setMinutes(reminderTime.getMinutes());
+        newNextDue.setSeconds(0);
+        newNextDue.setMilliseconds(0);
       }
+
+      // Storage'ı güncelle
+      const updatedCycles = cycles.map(c =>
+        c.id === cycleId ? { ...c, nextDue: newNextDue.toISOString() } : c
+      );
+      await AsyncStorage.setItem('@cycles', JSON.stringify(updatedCycles));
+
+      // Yeni bildirimi planla
+      const updatedCycle = { ...cycle, nextDue: newNextDue.toISOString() };
+      await scheduleNotificationForCycle(updatedCycle);
+      console.log(`🔄 Döngü yenilendi: ${cycle.name}, sonraki: ${newNextDue.toISOString()}`);
     }
   } catch (error) {
     console.error('❌ Bildirim handler hatası:', error);

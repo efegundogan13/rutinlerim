@@ -1,11 +1,32 @@
 import React, { useEffect } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { initializePurchases } from './src/utils/premium';
 import { refreshAllNotifications, handleNotificationReceived } from './src/utils/notifications';
+import { loadCycles } from './src/utils/storage';
+
+const navigationRef = createNavigationContainerRef();
+
+// Bildirime dokunulduğunda ilgili döngünün detay ekranına git
+const navigateToCycleFromNotification = async (response) => {
+  try {
+    const cycleId = response?.notification?.request?.content?.data?.cycleId;
+    if (!cycleId) return;
+
+    const cycles = await loadCycles();
+    const cycle = cycles.find(c => c.id === cycleId);
+    if (!cycle) return;
+
+    if (navigationRef.isReady()) {
+      navigationRef.navigate('ItemDetail', { cycle });
+    }
+  } catch (error) {
+    console.error('❌ Bildirim yönlendirme hatası:', error);
+  }
+};
 
 // Ekranları import et
 import HomeScreen from './src/screens/HomeScreen';
@@ -39,11 +60,29 @@ export default function App() {
         handleNotificationReceived(notification);
       }
     );
-    
+
+    // Kullanıcı bildirime dokunduğunda (uygulama açıkken/arka plandayken) ilgili döngüye git
+    const responseListener = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        navigateToCycleFromNotification(response);
+      }
+    );
+
     return () => {
       notificationListener.remove();
+      responseListener.remove();
     };
   }, []);
+
+  // Uygulama tamamen kapalıyken bir bildirime dokunulup açıldıysa (soğuk başlangıç),
+  // navigasyon hazır olduğunda ilgili döngüye git
+  const handleNavigationReady = () => {
+    Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (response) {
+        navigateToCycleFromNotification(response);
+      }
+    });
+  };
 
   const requestNotificationPermissions = async () => {
     const { status } = await Notifications.requestPermissionsAsync();
@@ -66,7 +105,7 @@ export default function App() {
   };
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef} onReady={handleNavigationReady}>
       <StatusBar style="auto" />
       <Stack.Navigator
         initialRouteName="Home"

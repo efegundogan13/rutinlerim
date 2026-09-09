@@ -136,13 +136,26 @@ const AddItemScreen = ({ navigation }) => {
       };
 
       const savedCycle = await addCycle(newCycle);
-      
+
       if (savedCycle) {
         // Bildirim planla
         await scheduleNotificationForCycle(savedCycle);
-        
-        // Geri dön
-        navigation.goBack();
+
+        // Ücretsiz kullanıcıya sınıra yaklaştığında, engelleyici olmayan tek seferlik bir uyarı göster
+        const newTotal = existingCycles.length + 1;
+        if (!premiumCheck.isPremium && newTotal === FREE_LIMIT - 2) {
+          Alert.alert(
+            '👍 Bilgi',
+            `Şu ana kadar ${newTotal} döngü eklediniz. Ücretsiz sürümde en fazla ${FREE_LIMIT} döngü ekleyebilirsiniz.`,
+            [
+              { text: 'Tamam', style: 'cancel', onPress: () => navigation.goBack() },
+              { text: 'Premium\'a Bak', onPress: () => navigation.navigate('Premium') }
+            ]
+          );
+        } else {
+          // Geri dön
+          navigation.goBack();
+        }
       } else {
         Alert.alert('Hata', 'Döngü eklenirken bir hata oluştu.');
       }

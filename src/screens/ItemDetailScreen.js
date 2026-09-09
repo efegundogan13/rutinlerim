@@ -54,6 +54,7 @@ const ItemDetailScreen = ({ route, navigation }) => {
   const [showNextTimePicker, setShowNextTimePicker] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Düzenleme formu açılırken picker state'lerini sıfırla
   useEffect(() => {
@@ -518,28 +519,6 @@ const ItemDetailScreen = ({ route, navigation }) => {
                 keyboardType="numeric"
               />
             </View>
-            {/* Son Tamamlanma Tarihi ve Saati */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Son Tamamlanma Tarihi ve Saati</Text>
-              <TouchableOpacity
-                style={styles.dateTimeButton}
-                onPress={() => {
-                  if (Platform.OS === 'android') {
-                    setShowLastDatePicker(true);
-                  } else {
-                    setShowLastDatePicker(true);
-                  }
-                }}
-              >
-                <View style={styles.dateTimeContent}>
-                  <Text style={styles.dateTimeIcon}>📅🕐</Text>
-                  <View style={styles.dateTimeText}>
-                    <Text style={styles.dateText}>{lastCompleted ? formatDate(lastCompleted) : ''}</Text>
-                    <Text style={styles.timeText}>{lastCompleted ? formatTime(lastCompleted) : ''}</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            </View>
             {/* Sonraki Tarih ve Saat */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Sonraki Hatırlatma Tarihi ve Saati</Text>
@@ -574,6 +553,38 @@ const ItemDetailScreen = ({ route, navigation }) => {
                 />
               </View>
             </View>
+            {/* Gelişmiş ayarlar (nadiren gereken "son tamamlanma" düzenlemesi burada saklı) */}
+            <TouchableOpacity
+              style={styles.advancedToggle}
+              onPress={() => setShowAdvanced(prev => !prev)}
+            >
+              <Text style={styles.advancedToggleText}>
+                {showAdvanced ? '▾ Gelişmiş ayarları gizle' : '▸ Gelişmiş ayarlar'}
+              </Text>
+            </TouchableOpacity>
+            {showAdvanced && (
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Son Tamamlanma Tarihi ve Saati</Text>
+                <TouchableOpacity
+                  style={styles.dateTimeButton}
+                  onPress={() => {
+                    if (Platform.OS === 'android') {
+                      setShowLastDatePicker(true);
+                    } else {
+                      setShowLastDatePicker(true);
+                    }
+                  }}
+                >
+                  <View style={styles.dateTimeContent}>
+                    <Text style={styles.dateTimeIcon}>📅🕐</Text>
+                    <View style={styles.dateTimeText}>
+                      <Text style={styles.dateText}>{lastCompleted ? formatDate(lastCompleted) : ''}</Text>
+                      <Text style={styles.timeText}>{lastCompleted ? formatTime(lastCompleted) : ''}</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            )}
             {/* Kaydet ve Sil Butonları */}
             <View style={styles.buttonContainer}>
               <TouchableOpacity
@@ -852,6 +863,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  advancedToggle: {
+    paddingVertical: 12,
+    marginBottom: 8,
+  },
+  advancedToggleText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.primary,
   },
   buttonContainer: {
     gap: 12,
